@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#12161d" />
+  <meta name="description" content="AppleLab — a free music studio: record, sequence, mix and export songs in your browser or on Windows." />
+  <title>AppleLab Studio</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Top bar -->
+    <header id="topbar">
+      <div class="brand" title="AppleLab">
+        <img src="icons/icon.svg" alt="" width="26" height="26" />
+        <span>Apple<b>Lab</b></span>
+      </div>
+      <nav class="menu">
+        <div class="menu-item" data-menu="file">File
+          <div class="dropdown">
+            <button data-action="new">New project…</button>
+            <button data-action="open">Open project…</button>
+            <button data-action="save">Save <kbd>Ctrl+S</kbd></button>
+            <hr />
+            <button data-action="import-project">Open .applelab file…</button>
+            <button data-action="export-project">Save as .applelab file…</button>
+            <hr />
+            <button data-action="import-audio">Import audio…</button>
+            <button data-action="export-wav">Export mixdown (WAV)…</button>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="edit">Edit
+          <div class="dropdown">
+            <button data-action="undo">Undo <kbd>Ctrl+Z</kbd></button>
+            <button data-action="redo">Redo <kbd>Ctrl+Y</kbd></button>
+            <hr />
+            <button data-action="copy">Copy clip <kbd>Ctrl+C</kbd></button>
+            <button data-action="paste">Paste at playhead <kbd>Ctrl+V</kbd></button>
+            <button data-action="duplicate">Duplicate clip <kbd>Ctrl+D</kbd></button>
+            <button data-action="split">Split clip at playhead <kbd>Ctrl+E</kbd></button>
+            <button data-action="delete">Delete clip <kbd>Del</kbd></button>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="track">Track
+          <div class="dropdown">
+            <button data-action="add-instrument">New instrument track</button>
+            <button data-action="add-drums">New drum track</button>
+            <button data-action="add-audio">New audio / voice track</button>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="help">Help
+          <div class="dropdown">
+            <button data-action="shortcuts">Keyboard shortcuts</button>
+            <button data-action="about">About AppleLab</button>
+          </div>
+        </div>
+      </nav>
+      <input id="project-name" class="project-name" spellcheck="false" aria-label="Project name" />
+      <span id="save-status" class="save-status"></span>
+      <div class="spacer"></div>
+      <button class="btn ghost" data-action="undo" title="Undo (Ctrl+Z)">↶</button>
+      <button class="btn ghost" data-action="redo" title="Redo (Ctrl+Y)">↷</button>
+      <button class="btn" data-action="save" title="Save (Ctrl+S)">Save</button>
+      <button class="btn accent" data-action="export-wav" title="Export mixdown as WAV">Export</button>
+    </header>
+
+    <!-- Transport -->
+    <section id="transport">
+      <div class="tgroup">
+        <button class="tbtn" id="btn-home" title="Go to start (Home)">⏮</button>
+        <button class="tbtn" id="btn-play" title="Play / Pause (Space)">▶</button>
+        <button class="tbtn" id="btn-stop" title="Stop">■</button>
+        <button class="tbtn rec" id="btn-rec" title="Record (R)">●</button>
+      </div>
+      <div class="lcd">
+        <div><span id="lcd-bbt">1.1.1</span><small>BAR</small></div>
+        <div><span id="lcd-time">00:00.0</span><small>TIME</small></div>
+      </div>
+      <div class="tgroup">
+        <label class="field">BPM <input id="bpm" type="number" min="30" max="300" step="1" /></label>
+        <button class="tbtn toggle" id="btn-metro" title="Metronome">𝅘𝅥 Click</button>
+        <button class="tbtn toggle" id="btn-loop" title="Loop (L) — drag on the ruler to set the loop">⟲ Loop</button>
+      </div>
+      <div class="tgroup">
+        <label class="field">Snap
+          <select id="snap">
+            <option value="4">Bar</option>
+            <option value="1">Beat</option>
+            <option value="0.5">1/8</option>
+            <option value="0.25" selected>1/16</option>
+            <option value="0">Off</option>
+          </select>
+        </label>
+        <label class="field">Zoom <input id="zoom" type="range" min="8" max="160" value="40" /></label>
+      </div>
+      <div class="spacer"></div>
+      <div class="tgroup master">
+        <label class="field">Master <input id="master-vol" type="range" min="0" max="1.25" step="0.01" /></label>
+        <canvas id="master-meter" width="120" height="14"></canvas>
+      </div>
+    </section>
+
+    <!-- Arrangement -->
+    <main id="arrange">
+      <div id="arrange-scroll">
+        <div id="ruler-row">
+          <div class="corner">
+            <button class="btn small accent" id="btn-add-track">+ Add track</button>
+          </div>
+          <div id="ruler"><div id="loop-band"></div></div>
+        </div>
+        <div id="tracks"></div>
+        <div id="playhead"></div>
+      </div>
+      <div id="empty-hint" class="empty-hint hidden">
+        <p>Your song is empty.</p>
+        <p>Click <b>+ Add track</b> to add an instrument, a drum machine or a voice/audio track, or drop audio files here.</p>
+      </div>
+    </main>
+
+    <!-- Bottom dock -->
+    <section id="dock">
+      <div class="dock-tabs">
+        <button class="dtab active" data-tab="editor">Editor</button>
+        <button class="dtab" data-tab="mixer">Mixer</button>
+        <button class="dtab" data-tab="keys">Keyboard</button>
+        <div class="spacer"></div>
+        <span id="dock-title" class="dock-title"></span>
+        <button class="btn ghost small" id="dock-toggle" title="Show / hide panel">▾</button>
+      </div>
+      <div class="dock-body">
+        <div class="dpanel active" id="panel-editor"></div>
+        <div class="dpanel" id="panel-mixer"></div>
+        <div class="dpanel" id="panel-keys"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast" class="toast"></div>
+  <div id="ctxmenu" class="ctxmenu hidden"></div>
+
+  <script src="js/util.js"></script>
+  <script src="js/instruments.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/pianoroll.js"></script>
+  <script src="js/drumeditor.js"></script>
+  <script src="js/audioeditor.js"></script>
+  <script src="js/mixer.js"></script>
+  <script src="js/keyboard.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

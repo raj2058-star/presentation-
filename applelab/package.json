@@ -1,0 +1,50 @@
+{
+  "name": "applelab",
+  "productName": "AppleLab",
+  "version": "1.0.0",
+  "description": "AppleLab — a free music studio: record, sequence, mix and export songs.",
+  "main": "electron/main.js",
+  "license": "MIT",
+  "author": "AppleLab",
+  "scripts": {
+    "start": "electron .",
+    "web": "npx --yes http-server -p 8080 -c-1 .",
+    "dist:win": "electron-builder --win nsis portable --x64",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "app.applelab.studio",
+    "productName": "AppleLab",
+    "copyright": "AppleLab",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": [
+      "index.html", "manifest.webmanifest", "sw.js",
+      "css/**", "js/**", "icons/**", "electron/**", "build/icon.png"
+    ],
+    "fileAssociations": [
+      { "ext": "applelab", "name": "AppleLab Project", "description": "AppleLab Project", "role": "Editor" }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [ { "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] } ],
+      "artifactName": "AppleLab-${version}-${arch}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AppleLab",
+      "artifactName": "AppleLab-Setup-${version}.${ext}"
+    },
+    "portable": { "artifactName": "AppleLab-Portable-${version}.${ext}" },
+    "mac": { "icon": "build/icon.png", "category": "public.app-category.music", "target": "dmg" },
+    "linux": { "icon": "build/icon.png", "category": "AudioVideo", "target": "AppImage" }
+  }
+}
