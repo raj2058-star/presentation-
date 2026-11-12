@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Copy the AppleLab web studio (../../ = applelab/) into the APK as assets/www
+def webOut = layout.buildDirectory.dir('generated/applelabAssets')
+tasks.register('copyWebApp', Sync) {
+    from(rootProject.file('..')) {
+        include 'index.html', 'manifest.webmanifest', 'css/**', 'js/**', 'icons/**'
+    }
+    into(webOut.map { it.dir('www') })
+}
+
+android {
+    namespace 'app.applelab.studio'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.applelab.studio'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the standard debug key so the APK installs directly.
+            // For the Play Store, replace this with your own release signing config.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.assets.srcDirs += webOut.get().asFile
+    }
+}
+
+tasks.named('preBuild') { dependsOn 'copyWebApp' }
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

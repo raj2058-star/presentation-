@@ -2,7 +2,7 @@
   "name": "applelab",
   "productName": "AppleLab",
   "version": "1.0.0",
-  "description": "AppleLab — a free music studio: record, sequence, mix and export songs.",
+  "description": "AppleLab \u2014 a free music studio: record, sequence, mix and export songs.",
   "main": "electron/main.js",
   "license": "MIT",
   "author": "AppleLab",
@@ -21,17 +21,44 @@
     "appId": "app.applelab.studio",
     "productName": "AppleLab",
     "copyright": "AppleLab",
-    "directories": { "output": "dist", "buildResources": "build" },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "files": [
-      "index.html", "manifest.webmanifest", "sw.js",
-      "css/**", "js/**", "icons/**", "electron/**", "build/icon.png"
+      "index.html",
+      "manifest.webmanifest",
+      "sw.js",
+      "css/**",
+      "js/**",
+      "icons/**",
+      "electron/**",
+      "build/icon.png"
     ],
     "fileAssociations": [
-      { "ext": "applelab", "name": "AppleLab Project", "description": "AppleLab Project", "role": "Editor" }
+      {
+        "ext": "applelab",
+        "name": "AppleLab Project",
+        "description": "AppleLab Project",
+        "role": "Editor"
+      }
     ],
     "win": {
       "icon": "build/icon.png",
-      "target": [ { "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] } ],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "artifactName": "AppleLab-${version}-${arch}-${target}.${ext}"
     },
     "nsis": {
@@ -43,8 +70,23 @@
       "shortcutName": "AppleLab",
       "artifactName": "AppleLab-Setup-${version}.${ext}"
     },
-    "portable": { "artifactName": "AppleLab-Portable-${version}.${ext}" },
-    "mac": { "icon": "build/icon.png", "category": "public.app-category.music", "target": "dmg" },
-    "linux": { "icon": "build/icon.png", "category": "AudioVideo", "target": "AppImage" }
+    "portable": {
+      "artifactName": "AppleLab-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.music",
+      "target": "dmg"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo",
+      "target": "AppImage"
+    },
+    "publish": null
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raj2058-star/presentation-.git"
   }
 }

@@ -337,7 +337,7 @@ AL.app = (() => {
     ui.modal('About AppleLab', el('div', {}, [
       el('p', { text: 'AppleLab is a free, open music studio that runs in your browser and on Windows.' }),
       el('p', { text: 'Record vocals and instruments, program beats, play synths, edit in the piano roll, mix with EQ, compression, drive, reverb and delay, and export your song as a WAV file. Projects are saved automatically on this device.' }),
-      el('p', { style: { color: 'var(--muted)' }, text: 'Version 1.0.0' + (window.applelabDesktop ? ' · Desktop edition' : ' · Web edition') }),
+      el('p', { style: { color: 'var(--muted)' }, text: 'Version 1.0.0' + (window.applelabDesktop ? ' · Desktop edition' : window.AndroidBridge ? ' · Android edition' : ' · Web edition') }),
     ]), [{ label: 'Close', class: 'accent' }]);
   }
 
@@ -525,7 +525,7 @@ AL.app = (() => {
     const unlock = () => { engine.ensure(); window.removeEventListener('pointerdown', unlock, true); window.removeEventListener('keydown', unlock, true); };
     window.addEventListener('pointerdown', unlock, true);
     window.addEventListener('keydown', unlock, true);
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/localhost|127\.0\.0\.1/.test(location.hostname)) {
+    if ('serviceWorker' in navigator && !window.AndroidBridge && /^https?:$/.test(location.protocol) && !/localhost|127\.0\.0\.1/.test(location.hostname)) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   }

@@ -57,7 +57,7 @@ kbd { font-family: inherit; font-size: 11px; color: var(--muted); margin-left: a
 /* ---------- transport ---------- */
 #transport { display: flex; align-items: center; gap: 14px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .tgroup { display: flex; align-items: center; gap: 6px; }
-.tbtn { background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; min-width: 38px; height: 34px; padding: 0 10px; font-size: 15px; }
+.tbtn { white-space: nowrap; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; min-width: 38px; height: 34px; padding: 0 10px; font-size: 15px; }
 .tbtn:hover { background: #26303b; }
 .tbtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .tbtn.rec { color: var(--rec); }
@@ -225,9 +225,22 @@ input[type=range] { accent-color: var(--accent); }
 .progress i { display: block; height: 100%; width: 40%; background: var(--accent); animation: indet 1s infinite linear; }
 @keyframes indet { from { margin-left: -40%; } to { margin-left: 100%; } }
 
-@media (max-width: 760px) {
-  :root { --header-w: 150px; }
-  .menu { display: none; }
-  .project-name { width: 120px; }
-  #dock { height: 240px; }
+/* touch: dragging clips, notes, steps, keys and the ruler must not scroll the page */
+.clip, #ruler, .pr-body canvas, .dr-step, .wkey, .bkey, .pads button, .dock-resizer { touch-action: none; }
+
+@media (max-width: 900px) {
+  :root { --header-w: 160px; --track-h: 70px; }
+  .brand span, .save-status, #topbar .btn.ghost { display: none; }
+  .menu-item { padding: 6px 7px; }
+  .project-name { width: 110px; }
+  #transport { gap: 8px; padding: 6px 8px; }
+  .lcd span { font-size: 15px; min-width: 64px; }
+  #master-meter { display: none; }
+  #dock { height: min(230px, 42vh); }
+  .mini { width: 19px; }
+  .th-btns .x { display: none; } /* delete via long-press / right-click menu */
+  .th-name { min-width: 40px; }
+}
+@media (max-height: 500px) {
+  #transport { flex-wrap: nowrap; overflow-x: auto; }
 }

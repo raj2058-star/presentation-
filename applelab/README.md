@@ -53,9 +53,28 @@ npm run dist:win
 
 This creates `dist/AppleLab-Setup-1.0.0.exe` (installer) and `dist/AppleLab-Portable-1.0.0.exe` (no install needed).
 
-Without a Windows PC, run the **Build AppleLab for Windows** GitHub Action (Actions tab → Run workflow) and download the `AppleLab-Windows` artifact.
+On Linux or macOS, install Wine first, then run the same command.
 
-Building Windows `.exe` files on Linux or macOS requires Wine.
+## Build the Android APK
+
+The Android app (`android/`) loads the same studio in a WebView, with microphone recording, file import, and exports saved to `Downloads/AppleLab`. To build it you need the Android SDK (API 34) and JDK 17:
+
+```bash
+cd applelab/android
+gradle assembleRelease      # → app/build/outputs/apk/release/app-release.apk
+```
+
+You can also open `applelab/android` in Android Studio and click **Run**.
+
+## Automatic builds (GitHub Actions)
+
+The **Build AppleLab apps** workflow runs on every push that changes `applelab/`. It builds:
+- `AppleLab-Windows`: the installer and portable `.exe`
+- `AppleLab-Android`: the `.apk`
+
+Download both from the workflow run's **Artifacts** section.
+
+If you push a tag such as `applelab-v1.0.0`, the workflow also publishes a GitHub Release with all three files attached.
 
 ## Keyboard shortcuts
 

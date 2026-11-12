@@ -1,0 +1,70 @@
+name: Build AppleLab apps (Windows .exe + Android .apk)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    tags: ['applelab-v*']
+    paths: ['applelab/**', '.github/workflows/applelab-build.yml']
+
+jobs:
+  windows:
+    name: Windows installer + portable .exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: applelab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npx electron-builder --win nsis portable --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AppleLab-Windows
+          path: applelab/dist/*.exe
+          if-no-files-found: error
+
+  android:
+    name: Android .apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build APK
+        run: gradle -p applelab/android assembleRelease --no-daemon --stacktrace
+      - run: cp applelab/android/app/build/outputs/apk/release/app-release.apk AppleLab-1.0.0.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AppleLab-Android
+          path: AppleLab-1.0.0.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release (tags only)
+    if: startsWith(github.ref, 'refs/tags/applelab-v')
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: AppleLab ${{ github.ref_name }}
+          files: |
+            out/*.exe
+            out/*.apk

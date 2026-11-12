@@ -111,6 +111,17 @@ AL.util = (() => {
   }
 
   function download(blob, filename) {
+    // Android app: hand the file to the native side, which saves it to Downloads/AppleLab
+    if (window.AndroidBridge && window.AndroidBridge.saveFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = String(reader.result).split(',')[1] || '';
+        const res = window.AndroidBridge.saveFile(b64, filename, blob.type || 'application/octet-stream');
+        if (window.AL && AL.ui) AL.ui.toast(res.startsWith('ERROR') ? 'Save failed: ' + res.slice(7) : 'Saved to ' + res, 4000);
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     const a = el('a', { href: url, download: filename });
     document.body.appendChild(a);
