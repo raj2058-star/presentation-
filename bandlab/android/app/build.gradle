@@ -1,0 +1,28 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.bandlabtest.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.bandlabtest.app"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // The built web app (bandlab/dist, made by `make` + webpack) is bundled as the APK's assets.
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../dist']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
