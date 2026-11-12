@@ -365,9 +365,16 @@ async function exportWav(){
     for(const t of tracks){ const g = oc.createGain(), p = oc.createStereoPanner(); g.gain.value = effGain(t); p.pan.value = t.pan; g.connect(p); p.connect(m); outs.set(t.id, g); }
     for(let s=0; s<total; s++) scheduleStep(oc, t => outs.get(t.id), s, s*sd, total*sd);
     const buf = await oc.startRendering();
-    const a = document.createElement("a"); a.href = URL.createObjectURL(toWav(buf)); a.download = "groovebench-mix.wav";
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    toast("Exported groovebench-mix.wav");
+    const blob = toWav(buf), name = "groovebench-mix-" + Date.now() + ".wav";
+    if(window.AndroidBridge){
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+      const where = window.AndroidBridge.saveFile(b64, name, "audio/wav");
+      toast(where ? "Saved to " + where : "Could not save the file");
+    } else {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast("Exported " + name);
+    }
   }catch(e){ toast("Export failed: " + e.message); }
   btn.disabled = false; btn.textContent = "⤓ Export WAV";
 }
@@ -719,6 +726,7 @@ if(load()){
 } else { demoProject(); }
 updateTransport();
 window.addEventListener("resize", () => { drawRuler(); drawLanes(); });
+window.__appPause = () => { if(S.playing) stop(); };
 requestAnimationFrame(frame);
 </script>
 </body>

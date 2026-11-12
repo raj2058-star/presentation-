@@ -1,0 +1,28 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.groovebench.studio'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.groovebench.studio"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // The web app in /studio is bundled as the APK's assets, so there is one copy of it.
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../studio']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

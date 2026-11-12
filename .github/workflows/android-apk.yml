@@ -1,0 +1,51 @@
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - "studio/**"
+      - "android/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Groovebench.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Groovebench-apk
+          path: Groovebench.apk
+
+      - name: Publish APK as a release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: groovebench-build-${{ github.run_number }}
+          name: Groovebench APK (build ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: Groovebench.apk
+          body: |
+            Android build of the Groovebench music studio.
+            Download Groovebench.apk on your phone, open it, and allow installing from this source when asked.
