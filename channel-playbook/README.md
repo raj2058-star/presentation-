@@ -17,7 +17,7 @@ thumbnails linted by `/yt-package`, and the schedule shaped by `/yt-plan`.
 | [`04-episode-packages.md`](04-episode-packages.md) | All 12 flagships: date, title, thumbnail text and brief, **5 scored hooks each**, beat outline, sources to research, the 3 Shorts to cut |
 | [`05-script-ep01-your-job-before-2035.md`](05-script-ep01-your-job-before-2035.md) | **The full, sourced script for EP01**, with an on-screen direction on every beat and the first Ledger entries |
 | [`06-script-trailer-last-normal-decade.md`](06-script-trailer-last-normal-decade.md) | The full channel trailer script |
-| [`07-image-prompts.md`](07-image-prompts.md) | Image-generation prompts for the brand kit, every thumbnail, EP01 illustrations and Shorts covers |
+| [`07-image-prompts.md`](07-image-prompts.md) | ChatGPT image prompts for the brand kit, every thumbnail, EP01 illustrations and Shorts covers |
 | [`voice.md`](voice.md) | The house voice that every skill reads |
 | [`ledger-template.csv`](ledger-template.csv) | The Prediction Ledger, with the first three entries filled in |
 
