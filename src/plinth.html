@@ -1,0 +1,2433 @@
+<title>Plinth Model Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: CAD-style workbench. Toolbar on top, outliner left, 3D viewport centre, inspector right, status strip at the foot. Dark-first, brass accent like an architect's model plinth. */
+:root {
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bg: #0e1113;
+  --panel: #14181b;
+  --panel-2: #1b2024;
+  --line: #262c31;
+  --line-strong: #353c43;
+  --fg: #e7eaec;
+  --muted: #8b959d;
+  --accent: #d9a14e;
+  --accent-ink: #1b1206;
+  --accent-soft: rgba(217, 161, 78, .15);
+  --blue: #78b2df;
+  --danger: #e8705f;
+  --ok: #7fbf8e;
+  --vp-1: #2b3137;
+  --vp-2: #0f1215;
+  --shadow: 0 10px 34px rgba(0, 0, 0, .5);
+  --radius: 8px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #e8ebed; --panel: #fbfbfc; --panel-2: #f1f3f5; --line: #dde1e5; --line-strong: #c8ced4;
+    --fg: #1a1e22; --muted: #5d6771; --accent: #a8691a; --accent-ink: #fffaf2; --accent-soft: rgba(168, 105, 26, .12);
+    --blue: #2a689c; --danger: #c2453a; --ok: #3d8a50; --vp-1: #ffffff; --vp-2: #d3d9de; --shadow: 0 10px 30px rgba(20, 30, 40, .16);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #e8ebed; --panel: #fbfbfc; --panel-2: #f1f3f5; --line: #dde1e5; --line-strong: #c8ced4;
+  --fg: #1a1e22; --muted: #5d6771; --accent: #a8691a; --accent-ink: #fffaf2; --accent-soft: rgba(168, 105, 26, .12);
+  --blue: #2a689c; --danger: #c2453a; --ok: #3d8a50; --vp-1: #ffffff; --vp-2: #d3d9de; --shadow: 0 10px 30px rgba(20, 30, 40, .16);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.45 var(--font-ui); overflow: hidden; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+svg.i.fill { fill: currentColor; stroke: none; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+
+/* ---------- top bar ---------- */
+.topbar { display: flex; align-items: center; gap: 10px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.topbar::-webkit-scrollbar { display: none; }
+.brand { display: flex; align-items: center; gap: 9px; margin-right: 6px; white-space: nowrap; }
+.brand b { font: 800 16px/1 var(--font-display); letter-spacing: .01em; }
+.brand small { font: 500 10px/1 var(--font-mono); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; padding-top: 2px; }
+.sep { width: 1px; height: 22px; background: var(--line); flex: none; }
+.spacer { flex: 1; }
+.btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid var(--line-strong); background: var(--panel-2); white-space: nowrap; transition: background .15s, border-color .15s; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.ghost:hover { background: var(--panel-2); }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+.btn.danger { color: var(--danger); }
+.icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--fg); }
+.icon-btn:hover { background: var(--panel-2); border-color: var(--line); }
+.icon-btn.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); flex: none; }
+.seg button { height: 26px; padding: 0 10px; border-radius: 6px; border: 0; background: transparent; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; font-weight: 500; }
+.seg button:hover { color: var(--fg); }
+.seg button.on { background: var(--panel); color: var(--fg); box-shadow: 0 1px 0 var(--line-strong), 0 1px 4px rgba(0,0,0,.15); }
+.seg button.on svg { color: var(--accent); }
+
+/* ---------- main ---------- */
+.main { position: relative; display: grid; grid-template-columns: 250px minmax(0, 1fr) 312px; min-height: 0; }
+.main.no-left { grid-template-columns: 0 minmax(0, 1fr) 312px; }
+.main.no-right { grid-template-columns: 250px minmax(0, 1fr) 0; }
+.main.no-left.no-right { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.main.no-left .panel.left, .main.no-right .panel.right { visibility: hidden; }
+.panel { background: var(--panel); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.panel.left { border-right: 1px solid var(--line); }
+.panel.right { border-left: 1px solid var(--line); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px 8px; }
+.eyebrow { font: 600 10.5px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.panel-body { overflow: auto; padding: 0 16px 16px; min-height: 0; flex: 1; }
+
+/* outliner */
+.tree { padding: 0 8px 12px; overflow: auto; flex: 1; min-height: 0; font-size: 12.5px; }
+.row { display: flex; align-items: center; gap: 4px; height: 28px; padding-left: calc(4px + var(--d, 0) * 14px); padding-right: 4px; border-radius: 6px; cursor: pointer; color: var(--fg); }
+.row:hover { background: var(--panel-2); }
+.row.sel { background: var(--accent-soft); color: var(--accent); }
+.row .caret { width: 18px; height: 18px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); padding: 0; flex: none; }
+.row .caret svg { width: 12px; height: 12px; transition: transform .15s; }
+.row .caret.open svg { transform: rotate(90deg); }
+.row .caret.none { visibility: hidden; }
+.row .ti { color: var(--muted); display: grid; place-items: center; }
+.row .ti svg { width: 14px; height: 14px; }
+.row.sel .ti { color: var(--accent); }
+.row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .eye { width: 24px; height: 24px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; opacity: 0; border-radius: 5px; }
+.row:hover .eye, .row .eye.off { opacity: 1; }
+.row .eye.off { color: var(--line-strong); }
+.row .eye svg { width: 15px; height: 15px; }
+.row.dim .nm { opacity: .45; }
+.tree-more { padding: 4px 8px 4px calc(26px + var(--d, 0) * 14px); color: var(--muted); font-size: 11.5px; }
+.empty { padding: 18px 16px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.empty strong { color: var(--fg); font-weight: 600; }
+.left-foot { border-top: 1px solid var(--line); padding: 12px 16px; display: grid; gap: 6px; }
+.dropzone-mini { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 12px; text-align: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+.dropzone-mini:hover { border-color: var(--accent); color: var(--fg); }
+
+/* tabs + inspector */
+.tabs { display: flex; gap: 2px; padding: 10px 12px 0; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; background: none; padding: 8px 4px 10px; color: var(--muted); font-size: 12px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button.on { color: var(--fg); border-bottom-color: var(--accent); }
+.pane { display: none; }
+.pane.on { display: block; }
+.sec { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.sec:last-child { border-bottom: 0; }
+.sec h4 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.field { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; }
+.field > label, .field > span.lab { color: var(--muted); font-size: 12px; }
+.field .val { font: 12px var(--font-mono); text-align: right; color: var(--muted); min-width: 44px; }
+.rng { display: flex; align-items: center; gap: 8px; min-width: 0; }
+input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); height: 18px; }
+input[type="color"] { width: 100%; height: 28px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-2); padding: 2px; }
+input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+.inp, select.inp { width: 100%; height: 30px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--panel-2); min-width: 0; }
+.inp:focus { border-color: var(--accent); outline: none; }
+.xyz { display: grid; grid-template-columns: 54px repeat(3, minmax(0, 1fr)); gap: 5px; align-items: center; }
+.xyz span { color: var(--muted); font-size: 12px; }
+.xyz input { height: 28px; padding: 0 6px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); font: 11.5px var(--font-mono); min-width: 0; width: 100%; }
+.xyz input:focus { border-color: var(--accent); outline: none; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 12px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font: 500 10.5px var(--font-mono); color: var(--muted); letter-spacing: .03em; white-space: nowrap; }
+.tag.accent { color: var(--accent); border-color: transparent; background: var(--accent-soft); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.actions .btn { justify-content: center; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer; }
+.list { display: grid; gap: 4px; }
+.li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); font-size: 12.5px; }
+.li .n { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 600 10.5px var(--font-mono); flex: none; }
+.li .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.li .m { font: 11.5px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.li button { border: 0; background: none; color: var(--muted); width: 22px; height: 22px; display: grid; place-items: center; border-radius: 5px; flex: none; }
+.li button:hover { color: var(--danger); background: var(--panel); }
+.li button svg { width: 14px; height: 14px; }
+.muted { color: var(--muted); }
+.small { font-size: 11.5px; }
+.note { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+
+/* ---------- viewport ---------- */
+.viewport { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--vp-2); touch-action: none; }
+.viewport canvas { display: block; width: 100%; height: 100%; outline: none; }
+.label-layer { position: absolute; inset: 0; pointer-events: none; }
+.vp-tools { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 3; }
+.vp-tools .icon-btn { width: 34px; height: 34px; }
+.vp-tools hr { border: 0; border-top: 1px solid var(--line); margin: 3px 4px; }
+.vp-nav { position: absolute; right: 12px; top: 12px; display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 3; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 80px); }
+.vp-nav button { height: 28px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; font: 500 11.5px var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.vp-nav button:hover { background: var(--panel-2); color: var(--fg); }
+.vp-nav button.on { color: var(--accent); background: var(--accent-soft); }
+.vp-nav .sep { height: 18px; align-self: center; margin: 0 2px; }
+.hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 7px 12px; border-radius: 8px; background: color-mix(in srgb, var(--panel) 90%, transparent); border: 1px solid var(--line); color: var(--muted); font-size: 12px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; z-index: 3; pointer-events: none; }
+.hint b { color: var(--accent); font-weight: 600; }
+.compass { position: absolute; right: 16px; bottom: 16px; width: 54px; height: 54px; z-index: 3; pointer-events: none; }
+.drop { position: absolute; inset: 10px; border: 2px dashed var(--accent); border-radius: 14px; background: color-mix(in srgb, var(--bg) 70%, transparent); display: grid; place-items: center; z-index: 20; pointer-events: none; text-align: center; }
+.drop b { display: block; font: 700 22px var(--font-display); margin-bottom: 4px; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 25; background: color-mix(in srgb, var(--vp-2) 55%, transparent); }
+.loading .card { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); max-width: min(420px, 90%); }
+.spin { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* labels in 3D */
+.pin { display: flex; align-items: center; pointer-events: auto; cursor: pointer; user-select: none; }
+.pin-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); margin-left: -5px; flex: none; }
+.pin-body { display: flex; align-items: center; gap: 6px; margin-left: 8px; padding: 4px 9px 4px 4px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line-strong); box-shadow: 0 4px 14px rgba(0,0,0,.25); font-size: 12px; white-space: nowrap; max-width: 260px; }
+.pin-body b { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 600 10px var(--font-mono); flex: none; }
+.pin-text { overflow: hidden; text-overflow: ellipsis; outline: none; min-width: 20px; }
+.pin-text[contenteditable="true"] { overflow: visible; text-overflow: clip; border-bottom: 1px solid var(--accent); cursor: text; }
+.pin.flash .pin-body { border-color: var(--accent); }
+.dim-tag { padding: 3px 8px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font: 600 11.5px var(--font-mono); white-space: nowrap; box-shadow: 0 3px 10px rgba(0,0,0,.3); pointer-events: none; font-variant-numeric: tabular-nums; }
+.dim-tag small { font-weight: 400; opacity: .8; margin-left: 6px; }
+.dxf-text { font: 500 11px var(--font-ui); color: var(--fg); white-space: nowrap; pointer-events: none; }
+
+/* artifact viewer */
+.artifact { position: absolute; inset: 0; z-index: 15; display: flex; flex-direction: column; background: var(--bg); }
+.artifact header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.artifact header .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.artifact iframe { flex: 1; border: 0; width: 100%; background: #fff; }
+
+/* status */
+.status { display: flex; align-items: center; gap: 14px; padding-block: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--panel); border-top: 1px solid var(--line); font: 11.5px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.status::-webkit-scrollbar { display: none; }
+.status b { color: var(--fg); font-weight: 500; }
+.status select { height: 22px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); font: 11.5px var(--font-mono); padding: 0 4px; }
+
+/* modal + toast */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(5, 8, 10, .55); }
+.modal .box { width: min(640px, 100%); max-height: min(86vh, 100%); overflow: auto; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow); }
+.modal .box.wide { width: min(860px, 100%); }
+.modal header { display: flex; align-items: center; gap: 12px; padding: 16px 18px 6px; position: sticky; top: 0; background: var(--panel); }
+.modal header h3 { margin: 0; flex: 1; font: 700 18px/1.2 var(--font-display); text-wrap: balance; }
+.modal .content { padding: 4px 18px 18px; display: grid; gap: 12px; }
+.modal textarea { width: 100%; min-height: 220px; resize: vertical; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel-2); padding: 10px 12px; font: 12px/1.5 var(--font-mono); }
+.modal textarea:focus { border-color: var(--accent); outline: none; }
+.modal .row-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.fmt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.fmt { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); display: grid; gap: 5px; min-width: 0; }
+.fmt h5 { margin: 0; font: 600 12.5px var(--font-ui); }
+.fmt p { margin: 0; color: var(--muted); font-size: 12px; }
+.fmt .chips .tag { height: 19px; }
+.tbl-wrap { overflow-x: auto; }
+table.native { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.native th, table.native td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.native th { color: var(--muted); font-weight: 500; font-size: 11.5px; }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 14px; font-size: 12.5px; }
+.keys div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+kbd { font: 500 11px var(--font-mono); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--panel-2); white-space: nowrap; }
+.shot img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+.toasts { position: fixed; right: 16px; bottom: 44px; z-index: 60; display: grid; gap: 8px; width: min(380px, calc(100% - 32px)); }
+.toast { padding: 10px 14px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line-strong); border-left: 3px solid var(--accent); box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.5; animation: tin .2s ease-out; }
+.toast.error { border-left-color: var(--danger); }
+.toast.ok { border-left-color: var(--ok); }
+@keyframes tin { from { transform: translateY(8px); opacity: 0; } }
+
+/* ---------- narrow screens ---------- */
+.only-narrow { display: none; }
+@media (max-width: 900px) {
+  .only-narrow { display: inline-grid; }
+  .hide-narrow { display: none !important; }
+  .main, .main.no-left, .main.no-right, .main.no-left.no-right { grid-template-columns: minmax(0, 1fr); }
+  .viewport { grid-column: 1; grid-row: 1; }
+  .panel { position: absolute; top: 0; bottom: 0; z-index: 30; width: min(320px, 88vw); box-shadow: var(--shadow); transition: transform .22s ease; visibility: visible !important; }
+  .panel.left { left: 0; transform: translateX(-104%); }
+  .panel.right { right: 0; transform: translateX(104%); }
+  .panel.open { transform: none; }
+  .seg button .lbl, #btnPaste .lbl { display: none; }
+  .topbar { flex-wrap: wrap; row-gap: 8px; overflow: visible; }
+  .topbar .spacer { display: none; }
+  .topbar .sep { display: none; }
+  .brand small { display: none; }
+  .vp-nav { max-width: calc(100% - 70px); }
+  .compass { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+
+<div class="app" id="app">
+  <header class="topbar" role="toolbar" aria-label="Main toolbar">
+    <button class="icon-btn only-narrow" id="btnLeftN" title="Scene outline" aria-label="Show scene outline"><svg class="i"><use href="#i-layers"/></svg></button>
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="17" width="22" height="6" rx="1.2" fill="var(--accent)"/><path d="M8 9.5 13 7l5 2.5V15l-5 2.5L8 15z" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5 13 12l5-2.5M13 12v5.5" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <b>Plinth</b><small class="hide-narrow">Model viewer</small>
+    </div>
+    <button class="btn primary" id="btnOpen"><svg class="i"><use href="#i-open"/></svg>Open</button>
+    <input type="file" id="fileInput" multiple hidden>
+    <button class="btn" id="btnPaste" title="Paste code, a model or a URL"><svg class="i"><use href="#i-paste"/></svg><span class="lbl">Paste from Claude</span></button>
+    <button class="btn ghost hide-narrow" id="btnSample"><svg class="i"><use href="#i-spark"/></svg>Sample</button>
+    <span class="sep"></span>
+    <div class="seg" id="segDim" role="group" aria-label="View mode">
+      <button data-dim="3d" class="on"><svg class="i"><use href="#i-cube"/></svg><span class="lbl">3D</span></button>
+      <button data-dim="2d"><svg class="i"><use href="#i-plan"/></svg><span class="lbl">2D plan</span></button>
+    </div>
+    <div class="seg" id="segMode" role="group" aria-label="Shading">
+      <button data-mode="shaded" class="on" title="Materials (1)">Shaded</button>
+      <button data-mode="clay" title="Clay model (2)">Clay</button>
+      <button data-mode="wire" title="Wireframe (3)">Wire</button>
+      <button data-mode="xray" title="X-ray (4)">X-ray</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="btnEdges" title="Edge lines (G)" aria-label="Edge lines"><svg class="i"><use href="#i-edges"/></svg></button>
+    <button class="icon-btn on" id="btnGrid" title="Grid" aria-label="Grid"><svg class="i"><use href="#i-grid"/></svg></button>
+    <button class="icon-btn" id="btnShot" title="Screenshot (P)" aria-label="Screenshot"><svg class="i"><use href="#i-camera"/></svg></button>
+    <button class="icon-btn" id="btnExport" title="Export model" aria-label="Export model"><svg class="i"><use href="#i-download"/></svg></button>
+    <button class="icon-btn" id="btnHelp" title="Formats and shortcuts (?)" aria-label="Formats and shortcuts"><svg class="i"><use href="#i-help"/></svg></button>
+    <button class="icon-btn hide-narrow" id="btnLeft" title="Toggle outline panel" aria-label="Toggle outline panel"><svg class="i"><use href="#i-pleft"/></svg></button>
+    <button class="icon-btn hide-narrow" id="btnRight" title="Toggle inspector panel" aria-label="Toggle inspector panel"><svg class="i"><use href="#i-pright"/></svg></button>
+    <button class="icon-btn only-narrow" id="btnRightN" title="Inspector" aria-label="Show inspector"><svg class="i"><use href="#i-sliders"/></svg></button>
+  </header>
+
+  <div class="main" id="main">
+    <aside class="panel left" id="panelLeft" aria-label="Scene outline">
+      <div class="panel-head"><span class="eyebrow">Scene outline</span><button class="btn ghost sm" id="btnClear" title="Remove every model">Clear</button></div>
+      <div class="tree" id="tree"></div>
+      <div class="left-foot">
+        <div class="dropzone-mini" id="miniDrop">Drop files, folders or a .zip here<br><span class="small">GLB · IFC · OBJ · FBX · DXF · PDF · 30+ more</span></div>
+      </div>
+    </aside>
+
+    <section class="viewport" id="viewport" aria-label="3D viewport">
+      <div class="vp-tools" role="toolbar" aria-label="Tools">
+        <button class="icon-btn on" data-tool="select" title="Select (Q)" aria-label="Select"><svg class="i"><use href="#i-cursor"/></svg></button>
+        <button class="icon-btn" data-tool="translate" title="Move (W)" aria-label="Move"><svg class="i"><use href="#i-move"/></svg></button>
+        <button class="icon-btn" data-tool="rotate" title="Rotate (E)" aria-label="Rotate"><svg class="i"><use href="#i-rotate"/></svg></button>
+        <button class="icon-btn" data-tool="scale" title="Scale (R)" aria-label="Scale"><svg class="i"><use href="#i-scale"/></svg></button>
+        <hr>
+        <button class="icon-btn" data-tool="label" title="Add label (L)" aria-label="Add label"><svg class="i"><use href="#i-pin"/></svg></button>
+        <button class="icon-btn" data-tool="measure" title="Measure (M)" aria-label="Measure"><svg class="i"><use href="#i-ruler"/></svg></button>
+        <button class="icon-btn" id="btnSection" title="Section cut (X)" aria-label="Section cut"><svg class="i"><use href="#i-section"/></svg></button>
+        <hr>
+        <button class="icon-btn" id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+      </div>
+      <div class="vp-nav" role="toolbar" aria-label="Camera">
+        <button data-view="top" title="Top (7)">TOP</button>
+        <button data-view="front" title="Front (1)">FRONT</button>
+        <button data-view="right" title="Right (3)">RIGHT</button>
+        <button data-view="iso" title="Isometric (0)">ISO</button>
+        <span class="sep"></span>
+        <button id="btnProj" title="Perspective or orthographic (5)">PERSP</button>
+        <button id="btnFit" title="Fit all (F)">FIT</button>
+      </div>
+      <svg class="compass" id="compass" viewBox="0 0 54 54" aria-hidden="true">
+        <circle cx="27" cy="27" r="24" fill="var(--panel)" stroke="var(--line-strong)"/>
+        <g id="compassRose"><path d="M27 8 31 27 27 24 23 27Z" fill="var(--accent)"/><path d="M27 46 31 27 27 30 23 27Z" fill="var(--line-strong)"/><text x="27" y="7" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7" fill="var(--fg)" dy="-0.5">N</text></g>
+      </svg>
+      <div class="hint" id="hint">Drag to orbit · right-drag to pan · scroll to zoom</div>
+      <div class="drop" id="drop" hidden><div><b>Drop to open</b><span class="muted">Models, drawings, textures, folders, zip bundles or Claude artifacts</span></div></div>
+      <div class="loading" id="loading"><div class="card"><div class="spin"></div><div id="loadingText">Starting the viewer…</div></div></div>
+      <div class="artifact" id="artifactView" hidden>
+        <header>
+          <svg class="i"><use href="#i-code"/></svg>
+          <span class="t" id="artifactTitle">Artifact</span>
+          <button class="btn sm" id="artifactReload">Reload</button>
+          <button class="btn sm" id="artifactFull">Full screen</button>
+          <button class="btn sm primary" id="artifactClose">Back to 3D</button>
+        </header>
+        <iframe id="artifactFrame" title="Artifact preview" sandbox="allow-scripts allow-pointer-lock allow-forms allow-popups allow-modals"></iframe>
+      </div>
+    </section>
+
+    <aside class="panel right" id="panelRight" aria-label="Inspector">
+      <div class="tabs" role="tablist">
+        <button class="on" data-tab="inspect" role="tab">Inspect</button>
+        <button data-tab="scene" role="tab">Scene</button>
+        <button data-tab="notes" role="tab">Notes</button>
+        <button data-tab="animate" role="tab">Animate</button>
+      </div>
+      <div class="panel-body">
+        <!-- INSPECT -->
+        <div class="pane on" data-pane="inspect" id="inspector"></div>
+
+        <!-- SCENE -->
+        <div class="pane" data-pane="scene">
+          <div class="sec">
+            <h4><span class="eyebrow">Backdrop &amp; light</span></h4>
+            <div class="field"><label for="bgSel">Backdrop</label>
+              <select class="inp" id="bgSel"><option value="studio">Studio gradient</option><option value="room">Soft room</option><option value="blueprint">Blueprint</option><option value="paper">Drafting paper</option><option value="night">Night</option></select></div>
+            <div class="field"><label for="expo">Exposure</label><div class="rng"><input type="range" id="expo" min="0.2" max="2.5" step="0.01" value="1"><span class="val" id="expoV">1.00</span></div></div>
+            <div class="field"><label for="envI">Ambient</label><div class="rng"><input type="range" id="envI" min="0" max="2.5" step="0.01" value="1"><span class="val" id="envIV">1.00</span></div></div>
+            <label class="check"><input type="checkbox" id="shadowChk" checked> Cast shadows</label>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Sun study</span><button class="btn sm" id="sunPlay"><svg class="i"><use href="#i-play"/></svg><span>Play day</span></button></h4>
+            <div class="field"><label for="sunTime">Time of day</label><div class="rng"><input type="range" id="sunTime" min="5" max="19" step="0.05" value="15.5"><span class="val" id="sunTimeV">15:30</span></div></div>
+            <div class="field"><label for="sunNorth">North offset</label><div class="rng"><input type="range" id="sunNorth" min="0" max="360" step="1" value="20"><span class="val" id="sunNorthV">20°</span></div></div>
+            <div class="field"><label for="sunInt">Sun strength</label><div class="rng"><input type="range" id="sunInt" min="0" max="6" step="0.05" value="2.4"><span class="val" id="sunIntV">2.40</span></div></div>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Section cut</span><label class="check"><input type="checkbox" id="secOn"> On</label></h4>
+            <div class="seg" id="secAxis" style="justify-self:start"><button data-axis="y" class="on">Plan (Y)</button><button data-axis="x">X</button><button data-axis="z">Z</button></div>
+            <div class="field"><label for="secPos">Cut height</label><div class="rng"><input type="range" id="secPos" min="0" max="1" step="0.001" value="0.6"><span class="val" id="secPosV">60%</span></div></div>
+            <div class="field"><label for="secColor">Poché fill</label><input type="color" id="secColor" value="#2a2d31"></div>
+            <label class="check"><input type="checkbox" id="secFlip"> Flip side</label>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Exploded view</span><button class="btn sm" id="explodePlay"><svg class="i"><use href="#i-play"/></svg><span>Animate</span></button></h4>
+            <div class="field"><label for="explode">Spread</label><div class="rng"><input type="range" id="explode" min="0" max="1.5" step="0.01" value="0"><span class="val" id="explodeV">0%</span></div></div>
+          </div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="pane" data-pane="notes">
+          <div class="sec">
+            <h4><span class="eyebrow">Labels</span><button class="btn sm" id="noteAddLabel"><svg class="i"><use href="#i-pin"/></svg>Add</button></h4>
+            <div class="list" id="labelList"></div>
+            <label class="check"><input type="checkbox" id="labelsVis" checked> Show labels in the viewport</label>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Measurements</span><button class="btn sm" id="noteMeasure"><svg class="i"><use href="#i-ruler"/></svg>Measure</button></h4>
+            <div class="list" id="measureList"></div>
+            <div class="field"><label for="unitSel">Model units</label>
+              <select class="inp" id="unitSel"><option value="auto">Auto-detect</option><option value="mm">Millimetres</option><option value="cm">Centimetres</option><option value="m">Metres</option><option value="in">Inches</option><option value="ft">Feet</option></select></div>
+            <p class="note">Distances read in metric and imperial. Set the units the file was drawn in if auto-detect guesses wrong.</p>
+          </div>
+          <div class="sec"><button class="btn sm danger" id="notesClear" style="justify-self:start">Remove all labels and measurements</button></div>
+        </div>
+
+        <!-- ANIMATE -->
+        <div class="pane" data-pane="animate">
+          <div class="sec">
+            <h4><span class="eyebrow">Model animation</span></h4>
+            <div id="clipBox"></div>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Turntable</span><label class="check"><input type="checkbox" id="ttOn"> Spin</label></h4>
+            <div class="field"><label for="ttSpeed">Speed</label><div class="rng"><input type="range" id="ttSpeed" min="0.2" max="8" step="0.1" value="1.5"><span class="val" id="ttSpeedV">1.5</span></div></div>
+          </div>
+          <div class="sec">
+            <h4><span class="eyebrow">Camera tour</span><button class="btn sm" id="tourPlay"><svg class="i"><use href="#i-play"/></svg><span>Play tour</span></button></h4>
+            <div class="list" id="viewList"></div>
+            <button class="btn sm" id="viewSave" style="justify-self:start"><svg class="i"><use href="#i-camera"/></svg>Save current view</button>
+            <p class="note">Save a few views, then play them back as a smooth fly-through.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="status" id="status">
+    <span id="stObjects">—</span>
+    <span id="stSize">—</span>
+    <span>Units <select id="unitSel2" aria-label="Model units"><option value="auto">auto</option><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="in">in</option><option value="ft">ft</option></select></span>
+    <span id="stCursor"></span>
+    <span class="spacer"></span>
+    <span id="stFps">— fps</span>
+  </footer>
+</div>
+
+<!-- paste dialog -->
+<div class="modal" id="pasteModal" hidden>
+  <div class="box">
+    <header><h3>Open something from Claude</h3><button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="content">
+      <p class="note">Paste an artifact's code (HTML, React/JSX, SVG), model text (OBJ, glTF JSON, STL, DXF, IFC, three.js JSON) or a direct link to a model file. Plinth works out the format.</p>
+      <textarea id="pasteText" spellcheck="false" placeholder="&lt;!doctype html&gt; …   or   export default function App() { … }   or   v 0 0 0 …"></textarea>
+      <div class="row-btns">
+        <button class="btn" id="pasteFromClip">Paste from clipboard</button>
+        <button class="btn primary" id="pasteGo">Open</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- help dialog -->
+<div class="modal" id="helpModal" hidden>
+  <div class="box wide">
+    <header><h3>Formats Plinth opens</h3><button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="content">
+      <div class="fmt-grid">
+        <div class="fmt"><h5>BIM &amp; architecture</h5><p>Building models with element types and properties.</p><div class="chips"><span class="tag accent">IFC</span><span class="tag">3DM Rhino</span><span class="tag">DAE SketchUp</span><span class="tag">KMZ</span></div></div>
+        <div class="fmt"><h5>2D drawings</h5><p>Plans, sections and sheets open flat in 2D plan mode.</p><div class="chips"><span class="tag accent">DXF</span><span class="tag">PDF</span><span class="tag">SVG</span><span class="tag">PNG JPG WEBP</span></div></div>
+        <div class="fmt"><h5>General 3D</h5><p>With materials, textures and animation.</p><div class="chips"><span class="tag accent">GLB / glTF</span><span class="tag">FBX</span><span class="tag">OBJ + MTL</span><span class="tag">3DS</span><span class="tag">USDZ</span><span class="tag">VRML</span><span class="tag">LWO</span><span class="tag">MD2</span></div></div>
+        <div class="fmt"><h5>Fabrication &amp; scans</h5><p>3D printing meshes, point clouds and toolpaths.</p><div class="chips"><span class="tag">STL</span><span class="tag">3MF</span><span class="tag">AMF</span><span class="tag">PLY</span><span class="tag">PCD</span><span class="tag">XYZ</span><span class="tag">VTK/VTP</span><span class="tag">G-code</span></div></div>
+        <div class="fmt"><h5>Made in Claude</h5><p>Artifacts run live; models generated as code open in 3D.</p><div class="chips"><span class="tag accent">HTML</span><span class="tag">JSX / TSX</span><span class="tag">three.js JSON</span><span class="tag">SVG</span></div></div>
+        <div class="fmt"><h5>Bundles</h5><p>Drop a folder or .zip to bring textures and .bin files along.</p><div class="chips"><span class="tag">ZIP</span><span class="tag">Folders</span><span class="tag">Multi-file</span></div></div>
+      </div>
+      <h4 class="eyebrow" style="margin:6px 0 0">Software with closed file formats</h4>
+      <div class="tbl-wrap"><table class="native">
+        <thead><tr><th>Software</th><th>Export this, then open it here</th></tr></thead>
+        <tbody>
+          <tr><td>Revit (.rvt)</td><td>File › Export › IFC. For visuals, export FBX from a 3D view.</td></tr>
+          <tr><td>SketchUp (.skp)</td><td>File › Export › 3D Model › COLLADA (.dae), FBX or OBJ.</td></tr>
+          <tr><td>Archicad (.pln) · Vectorworks (.vwx)</td><td>Save as IFC 2x3 or IFC4.</td></tr>
+          <tr><td>AutoCAD (.dwg)</td><td>Save As › DXF (any version). 3D solids: export FBX or STL.</td></tr>
+          <tr><td>Rhino (.3dm)</td><td>Opens directly.</td></tr>
+          <tr><td>3ds Max · Blender · Cinema 4D · Maya</td><td>Export glTF/GLB (best) or FBX.</td></tr>
+          <tr><td>SolidWorks · Fusion · STEP/IGES</td><td>Export STL, 3MF or GLB.</td></tr>
+        </tbody>
+      </table></div>
+      <h4 class="eyebrow" style="margin:6px 0 0">Keyboard</h4>
+      <div class="keys">
+        <div><span>Select</span><kbd>Q</kbd></div><div><span>Move / Rotate / Scale</span><kbd>W E R</kbd></div>
+        <div><span>Label</span><kbd>L</kbd></div><div><span>Measure</span><kbd>M</kbd></div>
+        <div><span>Section cut</span><kbd>X</kbd></div><div><span>Edges</span><kbd>G</kbd></div>
+        <div><span>Fit all / Focus</span><kbd>F</kbd></div><div><span>Hide selected</span><kbd>H</kbd></div>
+        <div><span>Show all</span><kbd>Alt H</kbd></div><div><span>Delete</span><kbd>Del</kbd></div>
+        <div><span>Duplicate</span><kbd>Ctrl D</kbd></div><div><span>Undo</span><kbd>Ctrl Z</kbd></div>
+        <div><span>Front / Right / Top</span><kbd>1 3 7</kbd></div><div><span>Iso / Ortho toggle</span><kbd>0 5</kbd></div>
+        <div><span>Select parent</span><kbd>Alt click</kbd></div><div><span>Screenshot</span><kbd>P</kbd></div>
+      </div>
+      <p class="note">IFC, Rhino, Draco-compressed glTF and PDF need small decoders fetched from a CDN. If one fails inside a locked-down preview, open <code>index.html</code> from the project in a normal browser tab.</p>
+    </div>
+  </div>
+</div>
+
+<!-- export menu -->
+<div class="modal" id="exportModal" hidden>
+  <div class="box">
+    <header><h3>Export</h3><button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="content">
+      <p class="note">Exports every visible model with your edits: moves, colours, deletions and the current explode spread.</p>
+      <div class="actions">
+        <button class="btn" data-export="glb">glTF binary (.glb)</button>
+        <button class="btn" data-export="obj">Wavefront (.obj)</button>
+        <button class="btn" data-export="stl">STL for printing</button>
+        <button class="btn" data-export="png">Screenshot (.png)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- screenshot -->
+<div class="modal" id="shotModal" hidden>
+  <div class="box wide">
+    <header><h3>Screenshot</h3><button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></header>
+    <div class="content shot">
+      <img id="shotImg" alt="Screenshot of the current view">
+      <div class="row-btns"><span class="note" style="flex:1">Right-click or long-press the image to copy or save it.</span><button class="btn primary" id="shotSave">Save PNG</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M3 6.5h6l2 2h10V19H3z"/></symbol>
+  <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 3.5h6v3H9z"/><path d="M8 5H5v15.5h14V5h-3"/><path d="M8.5 11h7M8.5 15h5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v5M12 16v5M3 12h5M16 12h5M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 11h7v9M11 4v3M15 11h5M15 11v3"/></symbol>
+  <symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5.5 3.5 19 11l-6.2 1.8L10 19z"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4v4.5H15"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M4 13h7v7H4z"/><path d="M13 11l7-7M14 4h6v6"/><path d="M4 9V4h5" stroke-dasharray="2 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 16.5 16.5 3 21 7.5 7.5 21z"/><path d="M7 12.5l2 2M10 9.5l2 2M13 6.5l2 2"/></symbol>
+  <symbol id="i-section" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z" stroke-dasharray="2.5 2"/><path d="M3 12.5 12 8l9 4.5-9 4.5z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 13.5 4 8.5l5-5"/><path d="M4 8.5h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M4 4l16 16"/><path d="M9.9 6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.6 3.4M6.3 7.5A15 15 0 0 0 2.5 12S6 18.5 12 18.5c1.4 0 2.7-.3 3.8-.9"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8h4l2-3h5l2 3h4v11.5h-17z"/><circle cx="12" cy="13.2" r="3.4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.7M12 16.8v.2"/></symbol>
+  <symbol id="i-edges" viewBox="0 0 24 24"><path d="M5 8 12 4l7 4v8l-7 4-7-4z"/><circle cx="5" cy="8" r="1.3"/><circle cx="19" cy="8" r="1.3"/><circle cx="12" cy="20" r="1.3"/><circle cx="12" cy="4" r="1.3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3.5 3.5h17v17h-17zM9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/></symbol>
+  <symbol id="i-pleft" viewBox="0 0 24 24"><path d="M3.5 4.5h17v15h-17zM9.5 4.5v15"/></symbol>
+  <symbol id="i-pright" viewBox="0 0 24 24"><path d="M3.5 4.5h17v15h-17zM14.5 4.5v15"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3.5 21 8.5l-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></symbol>
+  <symbol id="i-mesh" viewBox="0 0 24 24"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></symbol>
+  <symbol id="i-group" viewBox="0 0 24 24"><path d="M3.5 6.5h6l2 2h9V19h-17z"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 18 10 8l4 6 6-9"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="6" cy="7" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="8" r="1.4"/><circle cx="8" cy="17" r="1.4"/><circle cx="17" cy="17" r="1.4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 16l5-5 4 4 3-3 4 4"/><circle cx="15.5" cy="9" r="1.5"/></symbol>
+  <symbol id="i-bone" viewBox="0 0 24 24"><path d="M7 17l10-10M5.5 15.5a2 2 0 1 0 3 3M15.5 5.5a2 2 0 1 1 3 3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
+</svg>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.160.0/';
+const A = 'three/addons/';
+const V3 = THREE.Vector3;
+
+/* =========================================================== utilities */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const extOf = n => (n.split('?')[0].match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const nf = new Intl.NumberFormat();
+const ico = (id, cls = '') => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const isDarkTheme = () => {
+  const t = document.documentElement.dataset.theme;
+  if (t) return t === 'dark';
+  return !matchMedia('(prefers-color-scheme: light)').matches;
+};
+
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 320); }, kind === 'error' ? 8000 : 4200);
+}
+function showLoading(text) { $('#loadingText').textContent = text; $('#loading').hidden = false; }
+function hideLoading() { $('#loading').hidden = true; }
+
+/* =========================================================== renderer & scene */
+const vp = $('#viewport');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+renderer.localClippingEnabled = true;
+vp.prepend(renderer.domElement);
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.className = 'label-layer';
+vp.insertBefore(labelRenderer.domElement, vp.children[1]);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environment = envTex;
+
+const persp = new THREE.PerspectiveCamera(42, 1, 0.05, 2000);
+const ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, -1000, 1000);
+let camera = persp;
+persp.position.set(18, 11, 20);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.09;
+controls.screenSpacePanning = true;
+controls.zoomToCursor = true;
+
+const hemi = new THREE.HemisphereLight(0xe3ecf4, 0x403627, 0.45);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+
+const world = new THREE.Group(); world.name = 'Models'; scene.add(world);
+const helpers = new THREE.Group(); scene.add(helpers);
+const measureGroup = new THREE.Group(); scene.add(measureGroup);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.28 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.raycast = () => {};
+helpers.add(ground);
+let gridMinor = null, gridMajor = null;
+
+/* post-processing: outline for the selection */
+const composerRT = new THREE.WebGLRenderTarget(1, 1, { samples: 4, type: THREE.HalfFloatType });
+const composer = new EffectComposer(renderer, composerRT);
+const renderPass = new RenderPass(scene, camera);
+const outlinePass = new OutlinePass(new THREE.Vector2(1, 1), scene, camera);
+outlinePass.edgeStrength = 4; outlinePass.edgeThickness = 1.2; outlinePass.edgeGlow = 0;
+composer.addPass(renderPass); composer.addPass(outlinePass); composer.addPass(new OutputPass());
+
+const tctrl = new TransformControls(camera, renderer.domElement);
+tctrl.setSize(0.85);
+scene.add(tctrl);
+
+/* =========================================================== state */
+const state = {
+  tool: 'select', mode: 'shaded', edges: false, grid: true, shadows: true, bg: 'studio', dim: '3d',
+  units: 'auto', unit: 'm',
+  section: { on: false, axis: 'y', t: 0.6, flip: false, color: '#2a2d31' },
+  explode: 0, envInt: 1,
+  sun: { time: 15.5, north: 20, intensity: 2.4, playing: false },
+  box: new THREE.Box3(new V3(-5, 0, -5), new V3(5, 5, 5)), center: new V3(0, 2, 0), radius: 10,
+  sceneOffset: null,
+};
+const models = [];   // { root, name, mixer, clips, mixerRoot }
+const origMat = new WeakMap();
+const ownedMats = new WeakSet();
+const edgeMap = new WeakMap();
+const capMap = new WeakMap();
+const undoStack = [];
+let selected = null;
+
+/* =========================================================== sizing */
+function resize() {
+  const w = Math.max(1, vp.clientWidth), h = Math.max(1, vp.clientHeight);
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  labelRenderer.setSize(w, h);
+  persp.aspect = w / h; persp.updateProjectionMatrix();
+  const oh = (ortho.top - ortho.bottom);
+  ortho.left = -oh * w / h / 2; ortho.right = oh * w / h / 2; ortho.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(vp);
+
+/* =========================================================== backdrop, grid, ground, sun */
+let gradTex = null;
+function makeGradient() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(256, 200, 20, 256, 256, 420);
+  grd.addColorStop(0, cssVar('--vp-1') || '#2b3137');
+  grd.addColorStop(1, cssVar('--vp-2') || '#0f1215');
+  g.fillStyle = grd; g.fillRect(0, 0, 512, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function bgIsDark() {
+  if (state.bg === 'studio') return isDarkTheme();
+  return state.bg === 'blueprint' || state.bg === 'night';
+}
+function applyBackground() {
+  scene.backgroundBlurriness = 0;
+  if (state.bg === 'studio') { gradTex?.dispose(); gradTex = makeGradient(); scene.background = gradTex; }
+  else if (state.bg === 'room') { scene.background = envTex; scene.backgroundBlurriness = 0.55; }
+  else if (state.bg === 'blueprint') scene.background = new THREE.Color(0x173d63);
+  else if (state.bg === 'paper') scene.background = new THREE.Color(0xf2f0eb);
+  else scene.background = new THREE.Color(0x07090b);
+  buildGrid();
+  edgeMat.color.set(bgIsDark() && state.mode !== 'shaded' && state.mode !== 'clay' ? 0xd8e2ea : 0x15191d);
+}
+function niceStep(x) {
+  const p = Math.pow(10, Math.floor(Math.log10(x))); const n = x / p;
+  return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p;
+}
+function buildGrid() {
+  for (const g of [gridMinor, gridMajor]) if (g) { g.removeFromParent(); g.geometry.dispose(); g.material.dispose(); }
+  const size = state.box.isEmpty() ? new V3(10, 10, 10) : state.box.getSize(new V3());
+  const span = Math.max(size.x, size.z, 1);
+  const step = niceStep(span / 12);
+  const half = Math.ceil(span * 1.6 / (step * 5)) * step * 5;
+  const dark = bgIsDark();
+  const cMinor = dark ? 0x9aa6b0 : 0x5d6771, cMajor = dark ? 0xc9d3db : 0x2f363d;
+  gridMinor = new THREE.GridHelper(half * 2, Math.round(half * 2 / step), cMinor, cMinor);
+  gridMinor.material.transparent = true; gridMinor.material.opacity = state.bg === 'blueprint' ? 0.18 : 0.1; gridMinor.material.depthWrite = false;
+  gridMajor = new THREE.GridHelper(half * 2, Math.round(half * 2 / (step * 5)), cMajor, cMajor);
+  gridMajor.material.transparent = true; gridMajor.material.opacity = state.bg === 'blueprint' ? 0.32 : 0.2; gridMajor.material.depthWrite = false;
+  const y = (state.box.isEmpty() ? 0 : state.box.min.y) - span * 0.0005;
+  for (const g of [gridMinor, gridMajor]) { g.position.set(state.center.x, y, state.center.z); g.visible = state.grid; g.raycast = () => {}; helpers.add(g); }
+  state.gridStep = step;
+}
+function updateGround() {
+  const r = state.radius;
+  ground.scale.set(r * 10, r * 10, 1);
+  ground.position.set(state.center.x, state.box.isEmpty() ? 0 : state.box.min.y, state.center.z);
+  ground.visible = state.shadows && state.dim === '3d';
+}
+function updateSun() {
+  const s = state.sun;
+  const f = clamp((s.time - 6) / 12, 0, 1);
+  const elev = THREE.MathUtils.degToRad(Math.max(2, Math.sin(Math.PI * f) * 62));
+  const az = THREE.MathUtils.degToRad(90 + f * 180 + s.north);
+  const dir = new V3(Math.sin(az) * Math.cos(elev), Math.sin(elev), -Math.cos(az) * Math.cos(elev));
+  const r = state.radius;
+  sun.position.copy(state.center).addScaledVector(dir, r * 3);
+  sun.target.position.copy(state.center);
+  const warm = 1 - Math.sin(elev);
+  sun.color.setRGB(1, 0.96 - warm * 0.18, 0.88 - warm * 0.38);
+  sun.intensity = s.intensity * (0.35 + 0.65 * Math.min(1, Math.sin(elev) * 2));
+  const cam = sun.shadow.camera;
+  cam.left = -r * 1.4; cam.right = r * 1.4; cam.top = r * 1.4; cam.bottom = -r * 1.4;
+  cam.near = r * 0.05; cam.far = r * 6;
+  cam.updateProjectionMatrix();
+  sun.castShadow = state.shadows;
+  const hh = Math.floor(s.time), mm = Math.round((s.time - hh) * 60);
+  $('#sunTimeV').textContent = `${String(hh).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`;
+  $('#compassRose').setAttribute('transform', `rotate(${-s.north} 27 27)`);
+}
+
+/* =========================================================== bounds, units, stats */
+function worldBox(root = world) {
+  const box = new THREE.Box3(), tmp = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  root.traverseVisible(o => {
+    if (o.userData.isHelper) return;
+    if ((o.isMesh || o.isLine || o.isPoints) && o.geometry?.attributes?.position) {
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      if (Number.isFinite(tmp.min.x)) box.union(tmp);
+    }
+  });
+  return box;
+}
+function forEachMesh(fn, root = world) { root.traverse(o => { if (o.isMesh && !o.userData.isHelper) fn(o); }); }
+function triCount(g) { if (!g?.attributes?.position) return 0; return Math.floor((g.index ? g.index.count : g.attributes.position.count) / 3); }
+function statsOf(root) {
+  let objects = 0, tris = 0, verts = 0;
+  root.traverse(o => {
+    if (o.userData.isHelper) return;
+    if (o.isMesh || o.isLine || o.isPoints) { objects++; verts += o.geometry?.attributes?.position?.count || 0; if (o.isMesh) tris += triCount(o.geometry); }
+  });
+  return { objects, tris, verts };
+}
+const UNIT_M = { mm: 0.001, cm: 0.01, m: 1, in: 0.0254, ft: 0.3048 };
+function resolveUnits() {
+  if (state.units !== 'auto') { state.unit = state.units; return; }
+  if (state.box.isEmpty()) { state.unit = 'm'; return; }
+  const s = state.box.getSize(new V3()); const m = Math.max(s.x, s.y, s.z);
+  state.unit = m >= 2000 ? 'mm' : m >= 250 ? 'cm' : 'm';
+}
+function toMeters(d) { return d * UNIT_M[state.unit]; }
+function fmtLen(d, compact = false) {
+  const m = toMeters(d);
+  const metric = m < 1 ? `${(m * 1000).toFixed(m < 0.1 ? 1 : 0)} mm` : `${m.toFixed(m < 100 ? 3 : 1)} m`;
+  const inch = m / 0.0254;
+  let ft = Math.floor(inch / 12); let rem = inch - ft * 12;
+  let eighths = Math.round(rem * 8);
+  if (eighths >= 96) { ft++; eighths -= 96; }
+  const whole = Math.floor(eighths / 8), fr = eighths % 8;
+  const frac = fr ? ({ 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8' })[fr] : '';
+  const imp = `${ft}′ ${whole}${frac ? ' ' + frac : ''}″`;
+  return compact ? metric : { metric, imp };
+}
+function updateStatus() {
+  const s = statsOf(world);
+  $('#stObjects').innerHTML = `<b>${nf.format(s.objects)}</b> objects · <b>${nf.format(s.tris)}</b> tris · <b>${nf.format(s.verts)}</b> verts`;
+  if (state.box.isEmpty()) { $('#stSize').textContent = ''; return; }
+  const z = state.box.getSize(new V3());
+  $('#stSize').innerHTML = `W <b>${fmtLen(z.x, true)}</b> · D <b>${fmtLen(z.z, true)}</b> · H <b>${fmtLen(z.y, true)}</b>`;
+  const u = state.units === 'auto' ? `auto (${state.unit})` : state.unit;
+  $('#unitSel2').options[0].text = state.units === 'auto' ? `auto (${state.unit})` : 'auto';
+}
+
+function sceneChanged({ keepCamera = true } = {}) {
+  state.box = worldBox();
+  if (!state.box.isEmpty()) {
+    const sph = state.box.getBoundingSphere(new THREE.Sphere());
+    state.center.copy(sph.center); state.radius = Math.max(sph.radius, 0.01);
+  }
+  resolveUnits();
+  buildGrid(); updateGround(); updateSun();
+  raycaster.params.Line.threshold = state.radius / 250;
+  raycaster.params.Points.threshold = state.radius / 250;
+  if (!state.explode) explodeData = null;
+  renderTree(); updateStatus(); renderClips(); refreshMeasures();
+  if (!selected) renderInspector();
+  if (!keepCamera) frameAll();
+}
+
+/* =========================================================== camera */
+let fly = null;
+function flyTo(pos, target, dur = 0.9, onDone) {
+  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone(), t: 0, dur, onDone };
+}
+function setNearFar() {
+  const r = state.radius, d = camera.position.distanceTo(controls.target);
+  persp.near = Math.max(r / 2000, d / 5000, 0.001); persp.far = d + r * 40; persp.updateProjectionMatrix();
+  ortho.near = -(d + r * 20); ortho.far = d + r * 20; ortho.updateProjectionMatrix();
+}
+function frameBox(box, dir, dur = 0.9) {
+  if (box.isEmpty()) return;
+  const sph = box.getBoundingSphere(new THREE.Sphere());
+  const r = Math.max(sph.radius, 0.01);
+  dir = (dir || camera.position.clone().sub(controls.target)).normalize();
+  const fov = THREE.MathUtils.degToRad(persp.fov);
+  const aspect = Math.min(1, persp.aspect);
+  const dist = r / Math.sin(fov / 2) / Math.max(aspect, 0.6) * 1.02;
+  if (camera === ortho) {
+    const h = r * 2.3 / Math.max(aspect, 0.6);
+    ortho.top = h / 2; ortho.bottom = -h / 2; ortho.zoom = 1; resize();
+  }
+  flyTo(sph.center.clone().addScaledVector(dir, dist), sph.center, dur);
+}
+function frameAll(dir) { frameBox(state.box, dir); }
+const VIEWS = { top: new V3(0, 1, 0.0001), front: new V3(0, 0, 1), right: new V3(1, 0, 0), iso: new V3(1, 0.75, 1), back: new V3(0, 0, -1), left: new V3(-1, 0, 0) };
+function setView(name) {
+  const box = selected ? worldBox(selected) : state.box;
+  frameBox(box.isEmpty() ? state.box : box, VIEWS[name].clone());
+  $$('.vp-nav [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+}
+function setProjection(kind) {
+  const to = kind === 'ortho' ? ortho : persp;
+  if (to === camera) return;
+  const target = controls.target.clone();
+  const dir = camera.position.clone().sub(target);
+  if (to === ortho) {
+    const d = dir.length();
+    const h = 2 * d * Math.tan(THREE.MathUtils.degToRad(persp.fov / 2));
+    ortho.top = h / 2; ortho.bottom = -h / 2; ortho.zoom = 1;
+    ortho.position.copy(camera.position);
+  } else {
+    const h = (ortho.top - ortho.bottom) / ortho.zoom;
+    const d = h / (2 * Math.tan(THREE.MathUtils.degToRad(persp.fov / 2)));
+    persp.position.copy(target).addScaledVector(dir.normalize(), d);
+  }
+  to.up.set(0, 1, 0);
+  to.lookAt(target);
+  camera = to;
+  controls.object = to;
+  renderPass.camera = to; outlinePass.renderCamera = to; tctrl.camera = to;
+  resize(); setNearFar(); controls.update();
+  $('#btnProj').textContent = to === ortho ? 'ORTHO' : 'PERSP';
+  $('#btnProj').classList.toggle('on', to === ortho);
+}
+function setDim(dim) {
+  state.dim = dim;
+  $$('#segDim button').forEach(b => b.classList.toggle('on', b.dataset.dim === dim));
+  if (dim === '2d') {
+    setProjection('ortho');
+    controls.enableRotate = false;
+    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    controls.touches.ONE = THREE.TOUCH.PAN;
+    setView('top');
+  } else {
+    controls.enableRotate = true;
+    controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    setProjection('persp');
+    setView('iso');
+  }
+  updateGround(); setHint();
+}
+controls.addEventListener('start', () => { fly = null; stopTour(); });
+
+/* =========================================================== render modes, edges, caps */
+const OVR = {
+  clay: new THREE.MeshStandardMaterial({ color: 0xe8e3da, roughness: 0.88, metalness: 0 }),
+  wire: new THREE.MeshBasicMaterial({ color: 0x86b2da, wireframe: true }),
+  xray: new THREE.MeshBasicMaterial({ color: 0x8ec2ec, transparent: true, opacity: 0.13, depthWrite: false, side: THREE.DoubleSide }),
+};
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x15191d, transparent: true, opacity: 0.55 });
+const capMat = new THREE.MeshBasicMaterial({ color: state.section.color, side: THREE.BackSide });
+function getOrig(m) { return origMat.has(m) ? origMat.get(m) : m.material; }
+function applyMode(root = world) {
+  forEachMesh(m => {
+    if (!origMat.has(m)) origMat.set(m, m.material);
+    m.material = state.mode === 'shaded' ? origMat.get(m) : OVR[state.mode];
+  }, root);
+  edgeMat.color.set(bgIsDark() && (state.mode === 'wire' || state.mode === 'xray') ? 0xd8e2ea : 0x15191d);
+}
+function setMode(mode) {
+  state.mode = mode;
+  $$('#segMode button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  applyMode();
+  if (selected) renderInspector();
+}
+function applyEdges(root = world) {
+  forEachMesh(m => {
+    let e = edgeMap.get(m);
+    if (state.edges && !e && !m.isSkinnedMesh && triCount(m.geometry) < 400000) {
+      e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 28), edgeMat);
+      e.userData.isHelper = true; e.raycast = () => {};
+      m.add(e); edgeMap.set(m, e);
+    }
+    if (e) e.visible = state.edges;
+  }, root);
+}
+function applyCaps(root = world) {
+  forEachMesh(m => {
+    let c = capMap.get(m);
+    const om = getOrig(m); const first = Array.isArray(om) ? om[0] : om;
+    if (state.section.on && !c && !m.isSkinnedMesh && !(first?.transparent && first.opacity < 0.95)) {
+      c = new THREE.Mesh(m.geometry, capMat);
+      c.userData.isHelper = true; c.raycast = () => {};
+      m.add(c); capMap.set(m, c);
+    }
+    if (c) c.visible = state.section.on;
+  }, root);
+}
+function applyEnvIntensity(root = world) {
+  forEachMesh(m => {
+    const om = getOrig(m);
+    for (const mm of (Array.isArray(om) ? om : [om])) if (mm && 'envMapIntensity' in mm) mm.envMapIntensity = state.envInt;
+  }, root);
+}
+
+/* =========================================================== section */
+const clipPlane = new THREE.Plane(new V3(0, -1, 0), 0);
+let sectionBox = null;
+function updateSection() {
+  const s = state.section;
+  if (!s.on) { renderer.clippingPlanes = []; applyCaps(); return; }
+  if (!sectionBox) sectionBox = worldBox();
+  const ax = { x: 0, y: 1, z: 2 }[s.axis];
+  const min = sectionBox.min.getComponent(ax), max = sectionBox.max.getComponent(ax);
+  const pos = min + (max - min) * s.t;
+  const n = new V3(); n.setComponent(ax, s.flip ? 1 : -1);
+  clipPlane.normal.copy(n);
+  clipPlane.constant = s.flip ? -pos : pos;
+  renderer.clippingPlanes = [clipPlane];
+  applyCaps();
+  $('#secPosV').textContent = `${Math.round(s.t * 100)}%`;
+  $('#btnSection').classList.toggle('on', s.on);
+}
+function toggleSection(on = !state.section.on) {
+  state.section.on = on; sectionBox = null;
+  $('#secOn').checked = on; $('#btnSection').classList.toggle('on', on);
+  updateSection();
+  if (on) { switchTab('scene'); openRightOnNarrow(); toast('Section cut on. Slide <b>Cut height</b> in Scene to move the plane.'); }
+}
+
+/* =========================================================== explode */
+let explodeData = null;
+function prepareExplode() {
+  explodeData = [];
+  const box = worldBox(); if (box.isEmpty()) return;
+  const C = box.getCenter(new V3());
+  forEachMesh(o => {
+    if (!o.visible) return;
+    o.updateWorldMatrix(true, false);
+    const b = worldBox(o); if (b.isEmpty()) return;
+    explodeData.push({ o, local: o.position.clone(), world: o.getWorldPosition(new V3()), dir: b.getCenter(new V3()).sub(C) });
+  });
+}
+function applyExplode(f) {
+  state.explode = f;
+  if (!explodeData) prepareExplode();
+  for (const d of explodeData) {
+    if (f === 0) { d.o.position.copy(d.local); continue; }
+    const p = d.o.parent; if (!p) continue;
+    p.updateWorldMatrix(true, false);
+    d.o.position.copy(p.worldToLocal(d.world.clone().addScaledVector(d.dir, f)));
+  }
+  if (f === 0) explodeData = null;
+  $('#explode').value = f; $('#explodeV').textContent = `${Math.round(f * 100)}%`;
+}
+let explodeAnim = null;
+
+/* =========================================================== models */
+function addModel(res, fileName) {
+  const { object, animations = [], zUp = false, is2D = false, mixerRoot } = res;
+  const root = new THREE.Group();
+  root.name = fileName;
+  root.userData.file = fileName;
+  if (zUp) object.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  if (is2D) object.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+  root.add(object);
+  root.updateMatrixWorld(true);
+  const b = worldBox(root);
+  if (!b.isEmpty()) {
+    if (!state.sceneOffset) state.sceneOffset = new V3(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2);
+    object.position.add(state.sceneOffset);
+  }
+  root.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true; o.receiveShadow = true;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) if (m && m.map) m.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    }
+    if (o.isPoints && o.material) { o.material.sizeAttenuation = true; }
+  });
+  world.add(root);
+  const entry = { root, name: fileName, clips: animations, mixer: null, is2D };
+  if (animations.length) entry.mixer = new THREE.AnimationMixer(mixerRoot || object);
+  models.push(entry);
+  if (state.mode !== 'shaded') applyMode(root);
+  if (state.edges) applyEdges(root);
+  if (state.section.on) { sectionBox = null; updateSection(); }
+  applyEnvIntensity(root);
+  root.traverse(o => { if (o.isPoints) o.material.size = Math.max(worldBox(root).getSize(new V3()).length() / 600, 1e-4); });
+  if (state.explode) applyExplode(0);
+  sceneChanged();
+  return entry;
+}
+function clearAll() {
+  select(null);
+  for (const m of models) m.mixer?.stopAllAction();
+  models.length = 0;
+  for (const c of [...world.children]) c.removeFromParent();
+  for (const L of labels) L.obj.removeFromParent();
+  labels.length = 0; labelSeq = 0;
+  for (const M of measures) M.g.removeFromParent();
+  measures.length = 0;
+  state.sceneOffset = null; state.box = new THREE.Box3();
+  undoStack.length = 0;
+  applyExplode(0);
+  renderNotes(); sceneChanged();
+}
+
+/* =========================================================== file loading */
+const EXT = {
+  gltf: 'gltf', glb: 'gltf', obj: 'obj', fbx: 'fbx', stl: 'stl', ply: 'ply', '3ds': 'tds', dae: 'dae', '3mf': 'tmf', amf: 'amf',
+  wrl: 'vrml', vrml: 'vrml', usdz: 'usdz', '3dm': 'rhino', kmz: 'kmz', xyz: 'xyz', pcd: 'pcd', vtk: 'vtk', vtp: 'vtk',
+  gcode: 'gcode', gco: 'gcode', nc: 'gcode', lwo: 'lwo', md2: 'md2', json: 'json', ifc: 'ifc', dxf: 'dxf', svg: 'svg',
+  png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', gif: 'image', bmp: 'image', avif: 'image',
+  pdf: 'pdf', html: 'html', htm: 'html', jsx: 'jsx', tsx: 'jsx',
+};
+const NATIVE = {
+  skp: ['SketchUp', 'File › Export › 3D Model › COLLADA (.dae) or FBX'],
+  rvt: ['Revit', 'File › Export › IFC (or FBX from a 3D view)'], rfa: ['Revit family', 'load it in a project and export IFC or FBX'],
+  pln: ['Archicad', 'File › Save As › IFC'], pla: ['Archicad', 'File › Save As › IFC'], vwx: ['Vectorworks', 'File › Export › IFC'],
+  dwg: ['AutoCAD', 'Save As › DXF'], dgn: ['MicroStation', 'export DXF or IFC'], nwd: ['Navisworks', 'export FBX'], nwc: ['Navisworks', 'export FBX'],
+  max: ['3ds Max', 'File › Export › glTF or FBX'], blend: ['Blender', 'File › Export › glTF 2.0 (.glb)'], c4d: ['Cinema 4D', 'File › Export › glTF or FBX'],
+  ma: ['Maya', 'File › Export › FBX'], mb: ['Maya', 'File › Export › FBX'], step: ['STEP', 'convert to STL or GLB (FreeCAD can do this)'],
+  stp: ['STEP', 'convert to STL or GLB (FreeCAD can do this)'], iges: ['IGES', 'convert to STL or GLB'], igs: ['IGES', 'convert to STL or GLB'],
+  sldprt: ['SolidWorks', 'File › Save As › STL or 3MF'], sldasm: ['SolidWorks', 'File › Save As › STL or 3MF'], f3d: ['Fusion 360', 'Export › STL, 3MF or FBX'],
+};
+function makeManager(map) {
+  const mgr = new THREE.LoadingManager();
+  const cache = new Map();
+  mgr.setURLModifier(url => {
+    if (url.startsWith('data:')) return url;
+    let clean = url.split('?')[0].split('#')[0].replace(/\\/g, '/');
+    try { clean = decodeURIComponent(clean); } catch {}
+    const base = clean.split('/').pop().toLowerCase();
+    const f = map.get(base);
+    if (f) { if (!cache.has(base)) cache.set(base, URL.createObjectURL(f)); return cache.get(base); }
+    return url;
+  });
+  return mgr;
+}
+const blobURL = f => URL.createObjectURL(f);
+function loadScript(src, globalName) {
+  if (window[globalName]) return Promise.resolve(window[globalName]);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.crossOrigin = 'anonymous';
+    s.onload = () => window[globalName] ? res(window[globalName]) : rej(new Error(globalName + ' did not load'));
+    s.onerror = () => rej(new Error('Could not load ' + src));
+    document.head.appendChild(s);
+  });
+}
+const defaultMat = (opts = {}) => new THREE.MeshStandardMaterial({ color: 0xbfc5cc, roughness: 0.55, metalness: 0.05, ...opts });
+
+const LOADERS = {
+  async gltf(file, map) {
+    const [{ GLTFLoader }, { DRACOLoader }, { MeshoptDecoder }] = await Promise.all([
+      import(A + 'loaders/GLTFLoader.js'), import(A + 'loaders/DRACOLoader.js'), import(A + 'libs/meshopt_decoder.module.js')]);
+    const loader = new GLTFLoader(makeManager(map));
+    const draco = new DRACOLoader(); draco.setDecoderPath(THREE_CDN + 'examples/jsm/libs/draco/gltf/');
+    loader.setDRACOLoader(draco); loader.setMeshoptDecoder(MeshoptDecoder);
+    const g = await loader.loadAsync(blobURL(file));
+    return { object: g.scene, animations: g.animations };
+  },
+  async obj(file, map) {
+    const [{ OBJLoader }, { MTLLoader }] = await Promise.all([import(A + 'loaders/OBJLoader.js'), import(A + 'loaders/MTLLoader.js')]);
+    const text = await file.text();
+    const mgr = makeManager(map);
+    const loader = new OBJLoader(mgr);
+    const m = text.match(/^mtllib\s+(.+)$/m);
+    const wanted = m ? m[1].trim().split(/[\\/]/).pop().toLowerCase() : null;
+    const mf = (wanted && map.get(wanted)) || [...map.values()].find(f => extOf(f.name) === 'mtl');
+    if (mf) { const mtl = new MTLLoader(mgr).parse(await mf.text(), ''); mtl.preload(); loader.setMaterials(mtl); }
+    const obj = loader.parse(text);
+    if (!mf) obj.traverse(o => { if (o.isMesh) o.material = defaultMat(); });
+    return { object: obj };
+  },
+  async fbx(file, map) {
+    const { FBXLoader } = await import(A + 'loaders/FBXLoader.js');
+    const o = await new FBXLoader(makeManager(map)).loadAsync(blobURL(file));
+    return { object: o, animations: o.animations || [] };
+  },
+  async stl(file) {
+    const { STLLoader } = await import(A + 'loaders/STLLoader.js');
+    const g = new STLLoader().parse(await file.arrayBuffer());
+    if (!g.attributes.normal) g.computeVertexNormals();
+    const mesh = new THREE.Mesh(g, defaultMat({ vertexColors: !!g.hasColors }));
+    mesh.name = file.name.replace(/\.[^.]+$/, '');
+    return { object: mesh, zUp: true };
+  },
+  async ply(file) {
+    const { PLYLoader } = await import(A + 'loaders/PLYLoader.js');
+    const g = new PLYLoader().parse(await file.arrayBuffer());
+    const colors = !!g.attributes.color;
+    let o;
+    if (!g.index) o = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.01, vertexColors: colors, color: colors ? 0xffffff : 0xbfc5cc }));
+    else { if (!g.attributes.normal) g.computeVertexNormals(); o = new THREE.Mesh(g, defaultMat({ vertexColors: colors, color: colors ? 0xffffff : 0xbfc5cc })); }
+    o.name = file.name.replace(/\.[^.]+$/, '');
+    return { object: o, zUp: true };
+  },
+  async tds(file, map) {
+    const { TDSLoader } = await import(A + 'loaders/TDSLoader.js');
+    const o = await new TDSLoader(makeManager(map)).loadAsync(blobURL(file));
+    return { object: o, zUp: true };
+  },
+  async dae(file, map) {
+    const { ColladaLoader } = await import(A + 'loaders/ColladaLoader.js');
+    const c = await new ColladaLoader(makeManager(map)).loadAsync(blobURL(file));
+    return { object: c.scene, animations: c.scene.animations || [] };
+  },
+  async tmf(file) {
+    const { ThreeMFLoader } = await import(A + 'loaders/3MFLoader.js');
+    return { object: new ThreeMFLoader().parse(await file.arrayBuffer()), zUp: true };
+  },
+  async amf(file) {
+    const { AMFLoader } = await import(A + 'loaders/AMFLoader.js');
+    return { object: new AMFLoader().parse(await file.arrayBuffer()), zUp: true };
+  },
+  async vrml(file, map) {
+    const { VRMLLoader } = await import(A + 'loaders/VRMLLoader.js');
+    const l = new VRMLLoader(makeManager(map));
+    return { object: l.parse(await file.text(), '') };
+  },
+  async usdz(file) {
+    const { USDZLoader } = await import(A + 'loaders/USDZLoader.js');
+    return { object: new USDZLoader().parse(await file.arrayBuffer()) };
+  },
+  async kmz(file) {
+    const { KMZLoader } = await import(A + 'loaders/KMZLoader.js');
+    const c = new KMZLoader().parse(await file.arrayBuffer());
+    return { object: c.scene };
+  },
+  async xyz(file) {
+    const { XYZLoader } = await import(A + 'loaders/XYZLoader.js');
+    const g = new XYZLoader().parse(await file.text());
+    const colors = !!g.attributes.color;
+    return { object: new THREE.Points(g, new THREE.PointsMaterial({ size: 0.01, vertexColors: colors, color: colors ? 0xffffff : 0xbfc5cc })), zUp: true };
+  },
+  async pcd(file) {
+    const { PCDLoader } = await import(A + 'loaders/PCDLoader.js');
+    const p = new PCDLoader().parse(await file.arrayBuffer());
+    if (!p.geometry.attributes.color) p.material.color.set(0xbfc5cc);
+    return { object: p, zUp: true };
+  },
+  async vtk(file) {
+    const { VTKLoader } = await import(A + 'loaders/VTKLoader.js');
+    const g = new VTKLoader().parse(await file.arrayBuffer());
+    if (!g.attributes.normal) g.computeVertexNormals();
+    return { object: new THREE.Mesh(g, defaultMat({ side: THREE.DoubleSide, vertexColors: !!g.attributes.color })) };
+  },
+  async gcode(file) {
+    const { GCodeLoader } = await import(A + 'loaders/GCodeLoader.js');
+    return { object: new GCodeLoader().parse(await file.text()) };
+  },
+  async lwo(file, map) {
+    const { LWOLoader } = await import(A + 'loaders/LWOLoader.js');
+    const r = new LWOLoader(makeManager(map)).parse(await file.arrayBuffer(), '', file.name);
+    const g = new THREE.Group(); r.meshes.forEach(m => g.add(m));
+    return { object: g };
+  },
+  async md2(file) {
+    const { MD2Loader } = await import(A + 'loaders/MD2Loader.js');
+    const geo = new MD2Loader().parse(await file.arrayBuffer());
+    const mesh = new THREE.Mesh(geo, defaultMat());
+    return { object: mesh, animations: geo.animations || [], mixerRoot: mesh };
+  },
+  async json(file, map) {
+    const text = await file.text();
+    let data; try { data = JSON.parse(text); } catch { throw new Error('This JSON file has a syntax error.'); }
+    if (data.asset && data.asset.version) {
+      const { GLTFLoader } = await import(A + 'loaders/GLTFLoader.js');
+      const g = await new GLTFLoader(makeManager(map)).parseAsync(text, '');
+      return { object: g.scene, animations: g.animations };
+    }
+    const type = data.metadata?.type;
+    if (type === 'BufferGeometry' || (data.data && data.data.attributes)) {
+      const g = new THREE.BufferGeometryLoader().parse(data);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      return { object: new THREE.Mesh(g, defaultMat()) };
+    }
+    if (data.object || type === 'Object') {
+      const o = await new THREE.ObjectLoader().parseAsync(data);
+      if (o.isScene) { const g = new THREE.Group(); g.name = o.name || 'Scene'; [...o.children].forEach(c => g.add(c)); return { object: g, animations: o.animations || [] }; }
+      return { object: o, animations: o.animations || [] };
+    }
+    throw new Error('This JSON is not a glTF or three.js scene.');
+  },
+  async ifc(file) {
+    showLoading(`Loading the IFC engine for ${file.name}…`);
+    const WebIFC = await import('https://cdn.jsdelivr.net/npm/web-ifc@0.0.57/web-ifc-api.js');
+    const api = new WebIFC.IfcAPI();
+    api.SetWasmPath('https://cdn.jsdelivr.net/npm/web-ifc@0.0.57/', true);
+    await api.Init();
+    showLoading(`Building ${file.name}…`);
+    const id = api.OpenModel(new Uint8Array(await file.arrayBuffer()));
+    const root = new THREE.Group(); root.name = 'IFC model';
+    const byType = new Map(), mats = new Map();
+    const typeName = eid => { try { return api.GetNameFromTypeCode(api.GetLineType(id, eid)) || 'IfcElement'; } catch { return 'IfcElement'; } };
+    api.StreamAllMeshes(id, fm => {
+      const n = fm.geometries.size(); if (!n) return;
+      const eid = fm.expressID; const t = typeName(eid); const pretty = prettyIfc(t);
+      let g = byType.get(pretty);
+      if (!g) { g = new THREE.Group(); g.name = pretty; byType.set(pretty, g); root.add(g); if (/^(Spaces|Openings)$/.test(pretty)) g.visible = false; }
+      let name = '', gid = '', otype = '';
+      try { const line = api.GetLine(id, eid); name = line?.Name?.value || ''; gid = line?.GlobalId?.value || ''; otype = line?.ObjectType?.value || ''; } catch {}
+      const el = new THREE.Group();
+      el.name = name || `${pretty.replace(/s$/, '')} #${eid}`;
+      el.userData.ifc = { 'IFC class': t, 'Express ID': eid, 'Global ID': gid, Name: name, 'Object type': otype };
+      for (let i = 0; i < n; i++) {
+        const pg = fm.geometries.get(i);
+        const geo = api.GetGeometry(id, pg.geometryExpressID);
+        const v = api.GetVertexArray(geo.GetVertexData(), geo.GetVertexDataSize());
+        const ix = api.GetIndexArray(geo.GetIndexData(), geo.GetIndexDataSize());
+        const cnt = v.length / 6, pos = new Float32Array(cnt * 3), nor = new Float32Array(cnt * 3);
+        for (let k = 0; k < cnt; k++) { pos[k * 3] = v[k * 6]; pos[k * 3 + 1] = v[k * 6 + 1]; pos[k * 3 + 2] = v[k * 6 + 2]; nor[k * 3] = v[k * 6 + 3]; nor[k * 3 + 1] = v[k * 6 + 4]; nor[k * 3 + 2] = v[k * 6 + 5]; }
+        const bg = new THREE.BufferGeometry();
+        bg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        bg.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+        bg.setIndex(new THREE.BufferAttribute(new Uint32Array(ix), 1));
+        geo.delete?.();
+        const c = pg.color; const key = [c.x, c.y, c.z, c.w].map(x => x.toFixed(3)).join();
+        let m = mats.get(key);
+        if (!m) {
+          m = new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(c.x, c.y, c.z, THREE.SRGBColorSpace), roughness: 0.82, metalness: 0, side: THREE.DoubleSide, transparent: c.w < 1, opacity: c.w, depthWrite: c.w >= 1 });
+          mats.set(key, m);
+        }
+        const mesh = new THREE.Mesh(bg, m);
+        mesh.applyMatrix4(new THREE.Matrix4().fromArray(pg.flatTransformation));
+        mesh.name = el.name;
+        el.add(mesh);
+      }
+      g.add(el);
+    });
+    api.CloseModel(id);
+    return { object: root };
+  },
+  async dxf(file) { return { object: buildDXF(parseDXF(await file.text()), file.name), is2D: true }; },
+  async svg(file) {
+    const { SVGLoader } = await import(A + 'loaders/SVGLoader.js');
+    const data = new SVGLoader().parse(await file.text());
+    const g = new THREE.Group(); g.name = file.name;
+    const col = (v, fb) => { try { if (!v || v === 'none' || v.startsWith('url')) return null; return new THREE.Color().setStyle(v === 'currentColor' ? fb : v); } catch { return new THREE.Color(fb); } };
+    data.paths.forEach((p, i) => {
+      const st = p.userData?.style || {};
+      const fc = col(st.fill, '#888');
+      if (fc) {
+        const mat = new THREE.MeshBasicMaterial({ color: fc, side: THREE.DoubleSide, transparent: (st.fillOpacity ?? 1) < 1, opacity: st.fillOpacity ?? 1, toneMapped: false });
+        for (const s of SVGLoader.createShapes(p)) { const m = new THREE.Mesh(new THREE.ShapeGeometry(s), mat); m.position.z = i * 0.02; g.add(m); }
+      }
+      const sc = col(st.stroke, '#222');
+      if (sc) {
+        const mat = new THREE.MeshBasicMaterial({ color: sc, side: THREE.DoubleSide, transparent: (st.strokeOpacity ?? 1) < 1, opacity: st.strokeOpacity ?? 1, toneMapped: false });
+        for (const sp of p.subPaths) { const geo = SVGLoader.pointsToStroke(sp.getPoints(), st); if (geo) { const m = new THREE.Mesh(geo, mat); m.position.z = i * 0.02 + 0.01; g.add(m); } }
+      }
+    });
+    g.scale.set(0.01, -0.01, 0.01);
+    g.traverse(o => { if (o.isMesh) o.castShadow = false; });
+    const w = new THREE.Group(); w.add(g); w.name = 'Drawing';
+    return { object: w, is2D: true };
+  },
+  async image(file) {
+    const tex = await new THREE.TextureLoader().loadAsync(blobURL(file));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const W = 10, H = 10 * tex.image.height / tex.image.width;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false }));
+    m.name = file.name;
+    return { object: m, is2D: true };
+  },
+  async pdf(file) {
+    showLoading(`Loading the PDF engine for ${file.name}…`);
+    const lib = await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'pdfjsLib');
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const g = new THREE.Group(); g.name = file.name;
+    const n = Math.min(doc.numPages, 12); let x = 0;
+    for (let p = 1; p <= n; p++) {
+      showLoading(`Rendering sheet ${p} of ${n}…`);
+      const page = await doc.getPage(p);
+      const v1 = page.getViewport({ scale: 1 });
+      const scale = Math.min((p === 1 ? 4096 : 2048) / Math.max(v1.width, v1.height), 5);
+      const v = page.getViewport({ scale });
+      const c = document.createElement('canvas'); c.width = Math.round(v.width); c.height = Math.round(v.height);
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: ctx, viewport: v }).promise;
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      const W = v1.width * 0.000352778, H = v1.height * 0.000352778;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false }));
+      m.name = `Sheet ${p}`; m.position.x = x + W / 2; x += W + 0.05;
+      g.add(m);
+    }
+    if (doc.numPages > n) toast(`Showing the first ${n} of ${doc.numPages} sheets.`);
+    return { object: g, is2D: true };
+  },
+};
+LOADERS.rhino = async function (file) {
+  const { Rhino3dmLoader } = await import(A + 'loaders/3DMLoader.js');
+  const l = new Rhino3dmLoader(); l.setLibraryPath(THREE_CDN + 'examples/jsm/libs/rhino3dm/');
+  const buf = await file.arrayBuffer();
+  const o = await new Promise((res, rej) => l.parse(buf, res, rej));
+  return { object: o, zUp: true };
+};
+
+const IFC_NAMES = { WALL: 'Walls', WALLSTANDARDCASE: 'Walls', SLAB: 'Slabs', WINDOW: 'Windows', DOOR: 'Doors', COLUMN: 'Columns', BEAM: 'Beams', ROOF: 'Roofs', STAIR: 'Stairs', STAIRFLIGHT: 'Stairs', RAILING: 'Railings', FURNISHINGELEMENT: 'Furniture', FURNITURE: 'Furniture', MEMBER: 'Members', PLATE: 'Plates', COVERING: 'Coverings', SPACE: 'Spaces', CURTAINWALL: 'Curtain walls', BUILDINGELEMENTPROXY: 'Other elements', SITE: 'Site', OPENINGELEMENT: 'Openings', FOOTING: 'Foundations', PILE: 'Foundations', RAMP: 'Ramps', RAMPFLIGHT: 'Ramps', FLOWTERMINAL: 'MEP terminals', FLOWSEGMENT: 'MEP segments', FLOWFITTING: 'MEP fittings', DUCTSEGMENT: 'Ducts', PIPESEGMENT: 'Pipes', GEOGRAPHICELEMENT: 'Landscape' };
+function prettyIfc(t) {
+  const k = String(t).toUpperCase().replace(/^IFC/, '');
+  if (IFC_NAMES[k]) return IFC_NAMES[k];
+  const s = String(t).replace(/^Ifc/i, '').replace(/([a-z])([A-Z])/g, '$1 $2');
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : 'Elements';
+}
+
+/* ---------- DXF ---------- */
+function parseDXF(text) {
+  const lines = text.split(/\r\n|\r|\n/);
+  const pairs = [];
+  for (let i = 0; i + 1 < lines.length; i += 2) pairs.push([parseInt(lines[i].trim(), 10), lines[i + 1].trim()]);
+  let i = 0; const layers = {}, blocks = {}, entities = [];
+  const readEnts = () => {
+    const list = []; let cur = null;
+    while (i < pairs.length) {
+      const [c, v] = pairs[i];
+      if (c === 0) { if (v === 'ENDSEC' || v === 'EOF') break; cur = { type: v, d: [] }; list.push(cur); i++; continue; }
+      if (cur) cur.d.push([c, v]);
+      i++;
+    }
+    return list;
+  };
+  while (i < pairs.length) {
+    const [c, v] = pairs[i];
+    if (c === 0 && v === 'SECTION' && pairs[i + 1]) {
+      const name = pairs[i + 1][1]; i += 2;
+      const list = readEnts();
+      if (name === 'ENTITIES') entities.push(...list);
+      else if (name === 'BLOCKS') {
+        let cb = null;
+        for (const e of list) {
+          if (e.type === 'BLOCK') { cb = { name: dget(e, 2), base: [dnum(e, 10), dnum(e, 20), dnum(e, 30)], ents: [] }; blocks[cb.name] = cb; }
+          else if (e.type === 'ENDBLK') cb = null;
+          else if (cb) cb.ents.push(e);
+        }
+      } else if (name === 'TABLES') {
+        for (const e of list) if (e.type === 'LAYER') layers[dget(e, 2)] = { color: Math.abs(dnum(e, 62, 7)), off: dnum(e, 62, 7) < 0 };
+      }
+      continue;
+    }
+    i++;
+  }
+  return { layers, blocks, entities };
+}
+function dget(e, code, fb = '') { const p = e.d.find(x => x[0] === code); return p ? p[1] : fb; }
+function dnum(e, code, fb = 0) { const p = e.d.find(x => x[0] === code); const n = p ? parseFloat(p[1]) : NaN; return Number.isFinite(n) ? n : fb; }
+function dall(e, code) { return e.d.filter(x => x[0] === code).map(x => parseFloat(x[1])); }
+const ACI = { 1: '#e5484d', 2: '#e8c547', 3: '#46a758', 4: '#3fb6c8', 5: '#3e63dd', 6: '#d24fd0', 8: '#7c8389', 9: '#b4bac0', 30: '#e0821f', 40: '#e0a01f', 140: '#2e8fd6', 150: '#2a6fd6', 250: '#4f555b', 251: '#696f75', 252: '#848a90', 253: '#9fa5ab', 254: '#c3c7cb' };
+function aciColor(i, dark) {
+  if (i === 7 || i === 0 || i === 256 || !i) return dark ? '#e3e7ea' : '#1c2126';
+  if (ACI[i]) return ACI[i];
+  return `hsl(${(i * 37) % 360} 55% ${dark ? 62 : 42}%)`;
+}
+function buildDXF(dxf, name) {
+  const dark = bgIsDark();
+  const segs = new Map();     // key layer|color -> number[]
+  const texts = [];
+  const add = (layer, color, a, b) => {
+    const key = layer + '|' + color;
+    if (!segs.has(key)) segs.set(key, []);
+    segs.get(key).push(a.x, a.y, a.z, b.x, b.y, b.z);
+  };
+  const poly = (layer, color, pts, closed, M) => {
+    const P = pts.map(p => p.clone().applyMatrix4(M));
+    for (let k = 0; k + 1 < P.length; k++) add(layer, color, P[k], P[k + 1]);
+    if (closed && P.length > 2) add(layer, color, P[P.length - 1], P[0]);
+  };
+  const arcPts = (cx, cy, r, a0, a1, z = 0) => {
+    if (a1 < a0) a1 += Math.PI * 2;
+    const n = Math.max(8, Math.ceil((a1 - a0) / (Math.PI / 36)));
+    const out = [];
+    for (let k = 0; k <= n; k++) { const a = a0 + (a1 - a0) * k / n; out.push(new V3(cx + r * Math.cos(a), cy + r * Math.sin(a), z)); }
+    return out;
+  };
+  const bulge = (p1, p2, b) => {
+    const th = 4 * Math.atan(b), dx = p2.x - p1.x, dy = p2.y - p1.y, c = Math.hypot(dx, dy);
+    if (c < 1e-12) return [p1];
+    const r = c / (2 * Math.sin(th / 2)), h = r * Math.cos(th / 2);
+    const cx = (p1.x + p2.x) / 2 - dy / c * h, cy = (p1.y + p2.y) / 2 + dx / c * h;
+    const a1 = Math.atan2(p1.y - cy, p1.x - cx), R = Math.abs(r);
+    const n = Math.max(4, Math.ceil(Math.abs(th) / (Math.PI / 36)));
+    const out = [];
+    for (let k = 0; k < n; k++) { const a = a1 + th * k / n; out.push(new V3(cx + R * Math.cos(a), cy + R * Math.sin(a), p1.z)); }
+    return out;
+  };
+  const colorOf = (e, inherited) => {
+    const lay = dget(e, 8, '0');
+    let ci = dnum(e, 62, 256);
+    if (ci === 256) ci = dxf.layers[lay]?.color ?? 7;
+    if (ci === 0) ci = inherited ?? 7;
+    return aciColor(ci, dark);
+  };
+  const walk = (list, M, depth, inhLayer, inhColor) => {
+    for (let k = 0; k < list.length; k++) {
+      const e = list[k];
+      let layer = dget(e, 8, '0'); if (layer === '0' && inhLayer) layer = inhLayer;
+      if (dxf.layers[layer]?.off) continue;
+      const color = colorOf(e, inhColor);
+      const t = e.type;
+      if (t === 'LINE') poly(layer, color, [new V3(dnum(e, 10), dnum(e, 20), dnum(e, 30)), new V3(dnum(e, 11), dnum(e, 21), dnum(e, 31))], false, M);
+      else if (t === 'LWPOLYLINE') {
+        const xs = [], ys = [], bs = []; let cur = -1;
+        for (const [c, v] of e.d) { if (c === 10) { xs.push(+v); bs.push(0); cur++; } else if (c === 20) ys.push(+v); else if (c === 42 && cur >= 0) bs[cur] = +v; }
+        const closed = (dnum(e, 70) & 1) === 1, z = dnum(e, 38);
+        const P = xs.map((x, q) => new V3(x, ys[q] ?? 0, z));
+        const out = [];
+        for (let q = 0; q < P.length; q++) {
+          const nx = q + 1 < P.length ? P[q + 1] : (closed ? P[0] : null);
+          if (nx && bs[q]) out.push(...bulge(P[q], nx, bs[q])); else out.push(P[q]);
+        }
+        poly(layer, color, out, closed, M);
+      } else if (t === 'POLYLINE') {
+        const closed = (dnum(e, 70) & 1) === 1; const P = [], B = [];
+        let q = k + 1;
+        while (q < list.length && list[q].type === 'VERTEX') { P.push(new V3(dnum(list[q], 10), dnum(list[q], 20), dnum(list[q], 30))); B.push(dnum(list[q], 42)); q++; }
+        if (list[q]?.type === 'SEQEND') q++;
+        k = q - 1;
+        const out = [];
+        for (let j = 0; j < P.length; j++) { const nx = j + 1 < P.length ? P[j + 1] : (closed ? P[0] : null); if (nx && B[j]) out.push(...bulge(P[j], nx, B[j])); else out.push(P[j]); }
+        poly(layer, color, out, closed, M);
+      } else if (t === 'CIRCLE') poly(layer, color, arcPts(dnum(e, 10), dnum(e, 20), dnum(e, 40), 0, Math.PI * 2, dnum(e, 30)), false, M);
+      else if (t === 'ARC') poly(layer, color, arcPts(dnum(e, 10), dnum(e, 20), dnum(e, 40), THREE.MathUtils.degToRad(dnum(e, 50)), THREE.MathUtils.degToRad(dnum(e, 51)), dnum(e, 30)), false, M);
+      else if (t === 'ELLIPSE') {
+        const cx = dnum(e, 10), cy = dnum(e, 20), mx = dnum(e, 11), my = dnum(e, 21), ratio = dnum(e, 40, 1);
+        let s = dnum(e, 41, 0), en = dnum(e, 42, Math.PI * 2); if (en < s) en += Math.PI * 2;
+        const ang = Math.atan2(my, mx), a = Math.hypot(mx, my), b = a * ratio, n = 72, out = [];
+        for (let j = 0; j <= n; j++) { const tt = s + (en - s) * j / n; const x = a * Math.cos(tt), y = b * Math.sin(tt); out.push(new V3(cx + x * Math.cos(ang) - y * Math.sin(ang), cy + x * Math.sin(ang) + y * Math.cos(ang), 0)); }
+        poly(layer, color, out, false, M);
+      } else if (t === 'SPLINE') {
+        let xs = dall(e, 11), ys = dall(e, 21);
+        if (xs.length < 2) { xs = dall(e, 10); ys = dall(e, 20); }
+        poly(layer, color, xs.map((x, q) => new V3(x, ys[q] ?? 0, 0)), (dnum(e, 70) & 1) === 1, M);
+      } else if (t === 'SOLID' || t === '3DFACE' || t === 'TRACE') {
+        const P = [0, 1, 2, 3].map(j => new V3(dnum(e, 10 + j), dnum(e, 20 + j), dnum(e, 30 + j)));
+        poly(layer, color, t === '3DFACE' ? P : [P[0], P[1], P[3], P[2]], true, M);
+      } else if ((t === 'INSERT' || t === 'DIMENSION') && depth < 8) {
+        const blk = dxf.blocks[dget(e, 2)]; if (!blk) continue;
+        let BM;
+        if (t === 'DIMENSION') BM = M.clone();
+        else {
+          const T = new THREE.Matrix4().makeTranslation(dnum(e, 10), dnum(e, 20), dnum(e, 30));
+          const R = new THREE.Matrix4().makeRotationZ(THREE.MathUtils.degToRad(dnum(e, 50)));
+          const S = new THREE.Matrix4().makeScale(dnum(e, 41, 1) || 1, dnum(e, 42, 1) || 1, dnum(e, 43, 1) || 1);
+          const Bm = new THREE.Matrix4().makeTranslation(-blk.base[0], -blk.base[1], -blk.base[2]);
+          BM = M.clone().multiply(T).multiply(R).multiply(S).multiply(Bm);
+        }
+        const ci = dnum(e, 62, 256);
+        walk(blk.ents, BM, depth + 1, layer, ci === 256 ? (dxf.layers[layer]?.color ?? 7) : ci);
+      } else if ((t === 'TEXT' || t === 'MTEXT') && texts.length < 600) {
+        let s = dget(e, 1) + e.d.filter(x => x[0] === 3).map(x => x[1]).join('');
+        s = s.replace(/\\P/g, ' ').replace(/\\[A-Za-z][^;]*;/g, '').replace(/[{}]/g, '').replace(/%%[cC]/g, 'Ø').replace(/%%[dD]/g, '°').replace(/%%[pP]/g, '±').trim();
+        if (!s) continue;
+        const p = new V3(dnum(e, 10), dnum(e, 20), dnum(e, 30)).applyMatrix4(M);
+        texts.push({ s, p, layer, color, h: dnum(e, 40, 1) });
+      }
+    }
+  };
+  walk(dxf.entities, new THREE.Matrix4(), 0, null, null);
+  const g = new THREE.Group(); g.name = name;
+  const byLayer = new Map();
+  const layerGroup = l => { if (!byLayer.has(l)) { const lg = new THREE.Group(); lg.name = `Layer · ${l}`; byLayer.set(l, lg); g.add(lg); } return byLayer.get(l); };
+  for (const [key, arr] of segs) {
+    const [layer, color] = key.split('|');
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+    const ls = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: new THREE.Color(color), toneMapped: false }));
+    ls.name = `${layer} lines`;
+    layerGroup(layer).add(ls);
+  }
+  for (const t of texts) {
+    const el = document.createElement('div'); el.className = 'dxf-text'; el.textContent = t.s; el.style.color = t.color;
+    const o = new CSS2DObject(el); o.position.copy(t.p); o.center.set(0, 1); o.userData.isHelper = true; o.userData.dxfText = true;
+    layerGroup(t.layer).add(o);
+  }
+  if (!segs.size && !texts.length) throw new Error('No drawable entities were found in this DXF.');
+  if (texts.length) toast(`Drawing has ${texts.length} text notes. Toggle them with the labels switch in Notes.`);
+  return g;
+}
+
+/* ---------- Claude artifacts (HTML / JSX) ---------- */
+function wrapJSX(code) {
+  const declare = (what, g) => {
+    what = what.trim();
+    const ns = what.match(/^\*\s+as\s+(\w+)$/);
+    if (ns) return `const ${ns[1]} = window.${g};`;
+    const named = what.match(/\{([^}]*)\}/);
+    const def = what.replace(/\{[^}]*\}/, '').replace(/,/g, '').trim();
+    let out = '';
+    if (def) out += `const ${def} = window.${g};`;
+    if (named && named[1].trim()) out += `const {${named[1].replace(/\s+as\s+/g, ': ')}} = window.${g};`;
+    return out;
+  };
+  code = code.replace(/^\s*import\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"];?[ \t]*$/gm, (m, what, mod) => {
+    const g = mod === 'react' ? 'React' : /^react-dom/.test(mod) ? 'ReactDOM' : mod === 'three' ? 'THREE' : '__stub';
+    return declare(what, g);
+  }).replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, '');
+  let comp = 'App';
+  code = code.replace(/export\s+default\s+function\s+(\w+)/, (m, n) => { comp = n; return 'function ' + n; });
+  code = code.replace(/export\s+default\s+(?:React\.)?(?:memo\()?(\w+)\)?;?/, (m, n) => { comp = n; return ''; });
+  code = code.replace(/export\s+default\s+(\(\s*\)|\(\s*props\s*\)|\(\s*\{[^}]*\}\s*\))\s*=>/, (m, args) => { comp = '__Default'; return `const __Default = ${args} =>`; });
+  code = code.replace(/^export\s+(?=(const|function|class|let|var)\b)/gm, '');
+  const safe = JSON.stringify(code).replace(/<\/script/gi, '<\\/script');
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"><\/script>
+<style>body{margin:0;font-family:system-ui,sans-serif}#err{white-space:pre-wrap;color:#b42318;padding:16px;font:13px ui-monospace,monospace}</style></head>
+<body><div id="root"></div><div id="err"></div><script>
+window.__stub = new Proxy(function(){ return null; }, { get: (t, k) => (k === 'prototype' || typeof k === 'symbol') ? undefined : window.__stub, apply: () => null });
+try {
+  const src = ${safe} + "\\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(${comp}));";
+  const out = Babel.transform(src, { presets: [['typescript', { isTSX: true, allExtensions: true }], 'react'], filename: 'artifact.tsx' }).code;
+  (0, eval)(out);
+} catch (e) { document.getElementById('err').textContent = 'This component could not run here:\\n' + e.message; }
+<\/script></body></html>`;
+}
+let artifactHTML = '';
+function openArtifact(html, title) {
+  artifactHTML = html;
+  $('#artifactTitle').textContent = title;
+  $('#artifactFrame').srcdoc = html;
+  $('#artifactView').hidden = false;
+  toast(`Running <b>${esc(title)}</b>. Use <b>Back to 3D</b> to return.`, 'ok');
+}
+
+/* ---------- open files ---------- */
+async function collectDropped(dt) {
+  const items = [...(dt.items || [])].map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+  if (!items.length) return [...dt.files];
+  const out = [];
+  const walk = async entry => {
+    if (entry.isFile) out.push(await new Promise((r, j) => entry.file(r, j)));
+    else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do { batch = await new Promise((r, j) => reader.readEntries(r, j)); for (const e of batch) await walk(e); } while (batch.length);
+    }
+  };
+  for (const e of items) await walk(e);
+  return out;
+}
+async function handleFiles(list) {
+  const files = [...list]; if (!files.length) return;
+  const map = new Map();
+  for (const f of files) {
+    if (extOf(f.name) === 'zip') {
+      showLoading(`Unpacking ${f.name}…`);
+      try {
+        const { unzipSync } = await import(A + 'libs/fflate.module.js');
+        const out = unzipSync(new Uint8Array(await f.arrayBuffer()));
+        for (const [p, data] of Object.entries(out)) {
+          if (p.endsWith('/') || p.includes('__MACOSX')) continue;
+          const n = p.split('/').pop(); map.set(n.toLowerCase(), new File([data], n));
+        }
+      } catch (e) { toast(`Couldn't unpack ${esc(f.name)}. The zip may be damaged or encrypted.`, 'error'); }
+    } else map.set(f.name.toLowerCase(), f);
+  }
+  hideLoading();
+  const all = [...map.values()];
+  const modelFiles = all.filter(f => { const k = EXT[extOf(f.name)]; return k && k !== 'image'; });
+  let primaries = modelFiles.length ? modelFiles : all.filter(f => EXT[extOf(f.name)] === 'image');
+  if (primaries.some(f => extOf(f.name) === 'gltf')) primaries = primaries.filter(f => extOf(f.name) !== 'json' && extOf(f.name) !== 'bin');
+  const natives = all.filter(f => NATIVE[extOf(f.name)]);
+  for (const f of natives) {
+    const [app, how] = NATIVE[extOf(f.name)];
+    toast(`<b>${esc(f.name)}</b> is a ${app} file, which only ${app} can read. In ${app}: ${how}, then open the export here.`, 'error');
+  }
+  if (!primaries.length && !natives.length) {
+    toast(`Plinth doesn't recognise <b>${esc(files[0].name)}</b>. Open <b>?</b> to see the formats it reads.`, 'error');
+    return;
+  }
+  const before = models.length;
+  for (const f of primaries) await loadOne(f, map);
+  if (models.length > before) {
+    const last = models[models.length - 1];
+    if (last.is2D && state.dim !== '2d') setDim('2d');
+    else if (!last.is2D && state.dim === '2d') setDim('3d');
+    else frameAll(state.dim === '2d' ? VIEWS.top.clone() : undefined);
+    if (last.clips.length) { playClip(models.indexOf(last), 0); }
+  }
+}
+async function loadOne(file, map) {
+  const kind = EXT[extOf(file.name)];
+  if (kind === 'html') { openArtifact(await file.text(), file.name); return; }
+  if (kind === 'jsx') { openArtifact(wrapJSX(await file.text()), file.name); return; }
+  showLoading(`Opening ${file.name}…`);
+  await new Promise(r => setTimeout(r, 30));
+  try {
+    const res = await LOADERS[kind](file, map);
+    const entry = addModel(res, file.name);
+    const s = statsOf(entry.root);
+    toast(`Opened <b>${esc(file.name)}</b> · ${nf.format(s.objects)} objects, ${nf.format(s.tris)} triangles`, 'ok');
+  } catch (err) {
+    console.error(err);
+    const needsCdn = ['ifc', 'rhino', 'pdf'].includes(kind) || /draco|wasm|fetch|Failed to fetch|import/i.test(String(err?.message));
+    toast(`Couldn't open <b>${esc(file.name)}</b>. ${esc(err?.message || err)}${needsCdn ? '<br><span class="muted">This format needs a decoder from the internet. If you are in a locked-down preview, open index.html in a normal browser tab.</span>' : ''}`, 'error');
+  } finally { hideLoading(); }
+}
+
+async function openPasted(text) {
+  const t = text.trim(); if (!t) { toast('Paste something first.', 'error'); return; }
+  if (/^https?:\/\/\S+$/.test(t)) {
+    if (/claude\.ai\//.test(t)) { toast('Claude artifact links need you to be signed in, so they can\'t be fetched from here. Open the artifact, copy its code, and paste the code instead.', 'error'); return; }
+    showLoading('Downloading…');
+    try {
+      const r = await fetch(t); if (!r.ok) throw new Error(r.status);
+      const name = decodeURIComponent(new URL(t).pathname.split('/').pop() || 'download');
+      await handleFiles([new File([await r.blob()], name)]);
+    } catch { toast('Couldn\'t download that link. The server may block cross-site downloads, or this preview blocks the network. Download the file and drop it here instead.', 'error'); }
+    finally { hideLoading(); }
+    return;
+  }
+  let name;
+  if (/^(<\?xml[^>]*>\s*)?<svg[\s>]/i.test(t)) name = 'pasted.svg';
+  else if (/^ISO-10303-21/.test(t)) name = 'pasted.ifc';
+  else if (/^\s*0\s*\r?\n\s*SECTION/.test(t)) name = 'pasted.dxf';
+  else if (/<COLLADA/i.test(t)) name = 'pasted.dae';
+  else if (/^#VRML/.test(t)) name = 'pasted.wrl';
+  else if (/^ply\s/.test(t)) name = 'pasted.ply';
+  else if (/^solid\s/i.test(t) && /facet/i.test(t)) name = 'pasted.stl';
+  else if (/^[\[{]/.test(t)) name = 'pasted.json';
+  else if (/export\s+default|from\s+['"]react['"]|useState\s*\(|=>\s*\(\s*</.test(t) && !/<html|<!doctype/i.test(t)) name = 'artifact.jsx';
+  else if (/<(!doctype|html|head|body|div|canvas|script|style|section|main|svg)\b/i.test(t)) name = 'artifact.html';
+  else if (/^(v|vn|vt|f|o|g|mtllib|usemtl)\s/m.test(t) && /^v\s/m.test(t)) name = 'pasted.obj';
+  else { toast('Plinth couldn\'t tell what that is. Paste HTML, React code, SVG, OBJ, glTF JSON, STL, DXF or IFC text, or a link to a file.', 'error'); return; }
+  await handleFiles([new File([t], name)]);
+}
+
+/* =========================================================== selection, outliner */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function visibleChain(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(world.children, true);
+  for (const h of hits) {
+    if (h.object.userData.isHelper || !visibleChain(h.object)) continue;
+    if (state.section.on && clipPlane.distanceToPoint(h.point) < 0) continue;
+    return h;
+  }
+  return null;
+}
+function select(obj) {
+  selected = obj;
+  outlinePass.selectedObjects = obj ? [obj] : [];
+  if (obj && ['translate', 'rotate', 'scale'].includes(state.tool)) { tctrl.attach(obj); tctrl.setMode(state.tool); } else tctrl.detach();
+  if (obj) { let p = obj.parent; while (p && p !== world) { expanded.add(p.uuid); p = p.parent; } }
+  renderTree(); renderInspector();
+  if (obj) requestAnimationFrame(() => $('#tree .row.sel')?.scrollIntoView({ block: 'nearest' }));
+}
+const expanded = new Set();
+const isUserObj = o => !o.userData.isHelper && !o.isCSS2DObject;
+function typeIcon(o) {
+  if (o.isMesh && o.material?.map && o.geometry?.type === 'PlaneGeometry') return 'image';
+  if (o.isMesh) return 'mesh'; if (o.isLine) return 'line'; if (o.isPoints) return 'dots'; if (o.isBone) return 'bone'; if (o.isLight) return 'sun'; if (o.isCamera) return 'camera';
+  return 'group';
+}
+function nameOf(o) { return o.name || (o.isMesh ? 'Mesh' : o.isLine ? 'Lines' : o.isPoints ? 'Point cloud' : o.isBone ? 'Bone' : 'Group'); }
+let treeQueued = false;
+function renderTree() {
+  if (treeQueued) return; treeQueued = true;
+  requestAnimationFrame(() => {
+    treeQueued = false;
+    const el = $('#tree');
+    if (!world.children.length) { el.innerHTML = `<div class="empty"><strong>Nothing open yet.</strong><br>Drop a model or drawing anywhere, press <b>Open</b>, or paste an artifact with <b>Paste from Claude</b>.</div>`; return; }
+    let html = '';
+    const walk = (o, d) => {
+      const kids = o.children.filter(isUserObj);
+      const open = expanded.has(o.uuid);
+      html += `<div class="row${o === selected ? ' sel' : ''}${o.visible ? '' : ' dim'}" style="--d:${d}" data-id="${o.uuid}">
+        <button class="caret ${kids.length ? '' : 'none'} ${open ? 'open' : ''}" data-act="caret" aria-label="Expand">${ico('chev')}</button>
+        <span class="ti">${ico(typeIcon(o))}</span><span class="nm" title="${esc(nameOf(o))}">${esc(nameOf(o))}</span>
+        <button class="eye ${o.visible ? '' : 'off'}" data-act="eye" aria-label="Toggle visibility">${ico(o.visible ? 'eye' : 'eyeoff')}</button></div>`;
+      if (kids.length && open) {
+        const max = 400;
+        kids.slice(0, max).forEach(k => walk(k, d + 1));
+        if (kids.length > max) html += `<div class="tree-more" style="--d:${d + 1}">+ ${nf.format(kids.length - max)} more</div>`;
+      }
+    };
+    world.children.forEach(o => { if (!expanded.has('seen' + o.uuid)) { expanded.add('seen' + o.uuid); expanded.add(o.uuid); } walk(o, 0); });
+    el.innerHTML = html;
+  });
+}
+$('#tree').addEventListener('click', e => {
+  const row = e.target.closest('.row'); if (!row) return;
+  const o = world.getObjectByProperty('uuid', row.dataset.id); if (!o) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'caret') { expanded.has(o.uuid) ? expanded.delete(o.uuid) : expanded.add(o.uuid); renderTree(); return; }
+  if (act === 'eye') { o.visible = !o.visible; renderTree(); if (o === selected) renderInspector(); return; }
+  select(o);
+});
+$('#tree').addEventListener('dblclick', e => {
+  const row = e.target.closest('.row'); if (!row) return;
+  const o = world.getObjectByProperty('uuid', row.dataset.id); if (o) focusObj(o);
+});
+function focusObj(o) { const b = worldBox(o); if (!b.isEmpty()) frameBox(b); }
+
+/* =========================================================== inspector */
+function renderInspector() {
+  const el = $('#inspector');
+  const o = selected;
+  if (!o) {
+    const rows = models.map((m, i) => { const s = statsOf(m.root); return `<div class="li"><span class="t" data-model="${i}">${esc(m.name)}</span><span class="m">${nf.format(s.tris)} tris</span></div>`; }).join('');
+    el.innerHTML = `<div class="sec"><p class="note">Click any part of the model to inspect, recolour or move it. Alt-click selects the parent group.</p></div>
+      <div class="sec"><h4><span class="eyebrow">Open models</span></h4><div class="list">${rows || '<p class="note">None yet.</p>'}</div></div>`;
+    $$('[data-model]', el).forEach(n => n.onclick = () => select(models[+n.dataset.model].root));
+    return;
+  }
+  const s = statsOf(o); const b = worldBox(o); const z = b.isEmpty() ? null : b.getSize(new V3());
+  const mesh = o.isMesh ? o : (() => { let f = null; forEachMesh(m => { if (!f) f = m; }, o); return f; })();
+  const om = mesh ? getOrig(mesh) : null; const m0 = Array.isArray(om) ? om[0] : om;
+  const hex = m0?.color ? '#' + m0.color.getHexString() : '#cccccc';
+  const ifc = o.userData.ifc || o.parent?.userData?.ifc;
+  const deg = r => (r * 180 / Math.PI).toFixed(1);
+  el.innerHTML = `
+    <div class="sec">
+      <input class="inp" id="inName" value="${esc(nameOf(o))}" aria-label="Name">
+      <div class="chips"><span class="tag accent">${o.isMesh ? 'Mesh' : o.isLine ? 'Lines' : o.isPoints ? 'Points' : 'Group'}</span>${m0 ? `<span class="tag">${esc(m0.name || m0.type.replace('Material', ''))}</span>` : ''}${o.visible ? '' : '<span class="tag">Hidden</span>'}</div>
+      <dl class="kv">
+        <dt>Objects</dt><dd>${nf.format(s.objects)}</dd>
+        <dt>Triangles</dt><dd>${nf.format(s.tris)}</dd>
+        <dt>Vertices</dt><dd>${nf.format(s.verts)}</dd>
+        ${z ? `<dt>Width</dt><dd>${fmtLen(z.x).metric} · ${fmtLen(z.x).imp}</dd><dt>Depth</dt><dd>${fmtLen(z.z).metric} · ${fmtLen(z.z).imp}</dd><dt>Height</dt><dd>${fmtLen(z.y).metric} · ${fmtLen(z.y).imp}</dd>` : ''}
+      </dl>
+    </div>
+    ${ifc ? `<div class="sec"><h4><span class="eyebrow">IFC properties</span></h4><dl class="kv">${Object.entries(ifc).filter(([, v]) => v !== '' && v != null).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>` : ''}
+    <div class="sec">
+      <h4><span class="eyebrow">Transform</span><span class="muted small">scene units</span></h4>
+      <div class="xyz" data-prop="position"><span>Position</span><input type="number" step="0.1" data-a="x" value="${o.position.x.toFixed(3)}" aria-label="Position X"><input type="number" step="0.1" data-a="y" value="${o.position.y.toFixed(3)}" aria-label="Position Y"><input type="number" step="0.1" data-a="z" value="${o.position.z.toFixed(3)}" aria-label="Position Z"></div>
+      <div class="xyz" data-prop="rotation"><span>Rotate °</span><input type="number" step="5" data-a="x" value="${deg(o.rotation.x)}" aria-label="Rotation X"><input type="number" step="5" data-a="y" value="${deg(o.rotation.y)}" aria-label="Rotation Y"><input type="number" step="5" data-a="z" value="${deg(o.rotation.z)}" aria-label="Rotation Z"></div>
+      <div class="xyz" data-prop="scale"><span>Scale</span><input type="number" step="0.1" data-a="x" value="${o.scale.x.toFixed(3)}" aria-label="Scale X"><input type="number" step="0.1" data-a="y" value="${o.scale.y.toFixed(3)}" aria-label="Scale Y"><input type="number" step="0.1" data-a="z" value="${o.scale.z.toFixed(3)}" aria-label="Scale Z"></div>
+    </div>
+    ${m0 ? `<div class="sec">
+      <h4><span class="eyebrow">Material</span>${state.mode !== 'shaded' ? '<span class="muted small">shows in Shaded</span>' : ''}</h4>
+      <div class="field"><label for="mColor">Colour</label><input type="color" id="mColor" value="${hex}"></div>
+      ${'roughness' in m0 ? `<div class="field"><label for="mRough">Roughness</label><div class="rng"><input type="range" id="mRough" min="0" max="1" step="0.01" value="${m0.roughness}"><span class="val">${m0.roughness.toFixed(2)}</span></div></div>
+      <div class="field"><label for="mMetal">Metalness</label><div class="rng"><input type="range" id="mMetal" min="0" max="1" step="0.01" value="${m0.metalness}"><span class="val">${m0.metalness.toFixed(2)}</span></div></div>` : ''}
+      <div class="field"><label for="mOpac">Opacity</label><div class="rng"><input type="range" id="mOpac" min="0.05" max="1" step="0.01" value="${m0.opacity}"><span class="val">${m0.opacity.toFixed(2)}</span></div></div>
+      ${'emissive' in m0 ? `<div class="field"><label for="mEmis">Glow</label><input type="color" id="mEmis" value="#${m0.emissive.getHexString()}"></div>` : ''}
+      <label class="check"><input type="checkbox" id="mWire" ${m0.wireframe ? 'checked' : ''}> Wireframe</label>
+      <label class="check"><input type="checkbox" id="mDouble" ${m0.side === THREE.DoubleSide ? 'checked' : ''}> Double-sided</label>
+    </div>` : ''}
+    <div class="sec">
+      <h4><span class="eyebrow">Actions</span></h4>
+      <div class="actions">
+        <button class="btn sm" data-a="focus">Focus</button>
+        <button class="btn sm" data-a="isolate">Isolate</button>
+        <button class="btn sm" data-a="hide">${o.visible ? 'Hide' : 'Show'}</button>
+        <button class="btn sm" data-a="showall">Show all</button>
+        <button class="btn sm" data-a="dup">Duplicate</button>
+        <button class="btn sm" data-a="parent" ${o.parent === world ? 'disabled' : ''}>Select parent</button>
+        <button class="btn sm" data-a="zup">Fix Z-up</button>
+        <button class="btn sm" data-a="ground">Drop to ground</button>
+        <button class="btn sm danger" data-a="del">Delete</button>
+        <button class="btn sm" data-a="none">Deselect</button>
+      </div>
+    </div>`;
+  $('#inName').onchange = e => { o.name = e.target.value; renderTree(); };
+  $$('.xyz', el).forEach(row => row.addEventListener('change', e => {
+    const a = e.target.dataset.a; const v = parseFloat(e.target.value); if (!Number.isFinite(v)) return;
+    const prop = row.dataset.prop; const before = snap(o);
+    if (prop === 'rotation') o.rotation[a] = THREE.MathUtils.degToRad(v); else o[prop][a] = v;
+    pushUndo(() => restore(o, before)); sceneChanged();
+  }));
+  const mats = () => editableMats(o);
+  const bindR = (id, fn) => { const n = $('#' + id); if (!n) return; n.oninput = () => { fn(n.value, mats()); const lab = n.parentElement.querySelector('.val'); if (lab) lab.textContent = (+n.value).toFixed(2); }; };
+  bindR('mColor', (v, ms) => ms.forEach(m => m.color?.set(v)));
+  bindR('mRough', (v, ms) => ms.forEach(m => { if ('roughness' in m) m.roughness = +v; }));
+  bindR('mMetal', (v, ms) => ms.forEach(m => { if ('metalness' in m) m.metalness = +v; }));
+  bindR('mEmis', (v, ms) => ms.forEach(m => m.emissive?.set(v)));
+  bindR('mOpac', (v, ms) => ms.forEach(m => { const t = +v < 0.999; if (m.transparent !== t) { m.transparent = t; m.needsUpdate = true; } m.opacity = +v; m.depthWrite = !t; }));
+  const mw = $('#mWire'); if (mw) mw.onchange = () => mats().forEach(m => { m.wireframe = mw.checked; });
+  const md = $('#mDouble'); if (md) md.onchange = () => mats().forEach(m => { m.side = md.checked ? THREE.DoubleSide : THREE.FrontSide; m.needsUpdate = true; });
+  $$('[data-a]', el).forEach(btn => { if (btn.tagName === 'BUTTON') btn.onclick = () => action(btn.dataset.a); });
+}
+function editableMats(o) {
+  const out = [], remap = new Map();
+  const meshes = []; if (o.isMesh) meshes.push(o); else forEachMesh(m => meshes.push(m), o);
+  for (const m of meshes) {
+    const om = getOrig(m); const arr = Array.isArray(om) ? om : [om];
+    const nu = arr.map(x => { if (!x || ownedMats.has(x)) return x; if (!remap.has(x)) { const c = x.clone(); ownedMats.add(c); remap.set(x, c); } return remap.get(x); });
+    const nm = Array.isArray(om) ? nu : nu[0];
+    origMat.set(m, nm); if (state.mode === 'shaded') m.material = nm;
+    for (const x of nu) if (x && !out.includes(x)) out.push(x);
+  }
+  return out;
+}
+function updateTransformInputs() {
+  if (!selected) return;
+  const o = selected; const deg = r => (r * 180 / Math.PI).toFixed(1);
+  const set = (prop, f) => $$(`.xyz[data-prop="${prop}"] input`).forEach(i => { if (document.activeElement !== i) i.value = f(i.dataset.a); });
+  set('position', a => o.position[a].toFixed(3)); set('rotation', a => deg(o.rotation[a])); set('scale', a => o.scale[a].toFixed(3));
+}
+const snap = o => ({ p: o.position.clone(), q: o.quaternion.clone(), s: o.scale.clone() });
+function restore(o, b) { o.position.copy(b.p); o.quaternion.copy(b.q); o.scale.copy(b.s); if (o === selected) updateTransformInputs(); }
+function pushUndo(fn) { undoStack.push(fn); if (undoStack.length > 80) undoStack.shift(); }
+function undo() {
+  const fn = undoStack.pop();
+  if (!fn) { toast('Nothing to undo.'); return; }
+  fn(); sceneChanged(); renderInspector(); renderNotes();
+}
+function action(a) {
+  const o = selected; if (!o && a !== 'showall') return;
+  if (a === 'focus') focusObj(o);
+  else if (a === 'hide') { o.visible = !o.visible; renderTree(); renderInspector(); }
+  else if (a === 'isolate') {
+    const prev = []; world.traverse(x => { if (!x.userData.isHelper) prev.push([x, x.visible]); });
+    world.traverse(x => { if (!x.userData.isHelper) x.visible = false; });
+    world.visible = true; o.traverseAncestors(x => x.visible = true); o.traverse(x => { if (!x.userData.isHelper) x.visible = true; });
+    pushUndo(() => prev.forEach(([x, v]) => x.visible = v));
+    renderTree(); focusObj(o); toast('Isolated. Press <b>Show all</b> or Alt H to bring everything back.');
+  }
+  else if (a === 'showall') { world.traverse(x => { if (!x.userData.isHelper) x.visible = true; }); renderTree(); renderInspector(); }
+  else if (a === 'dup') duplicate(o);
+  else if (a === 'parent') { if (o.parent && o.parent !== world) select(o.parent); }
+  else if (a === 'zup') { const b = snap(o); o.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2)); pushUndo(() => restore(o, b)); sceneChanged(); renderInspector(); }
+  else if (a === 'ground') {
+    const b0 = snap(o); const bx = worldBox(o); if (bx.isEmpty()) return;
+    const dy = -bx.min.y; const pw = o.parent.localToWorld(o.position.clone()); pw.y += dy; o.position.copy(o.parent.worldToLocal(pw));
+    pushUndo(() => restore(o, b0)); sceneChanged(); renderInspector();
+  }
+  else if (a === 'del') deleteObj(o);
+  else if (a === 'none') select(null);
+}
+function duplicate(o) {
+  if (!o.parent) return;
+  const c = o.clone();
+  const src = [], dst = []; o.traverse(x => src.push(x)); c.traverse(x => dst.push(x));
+  src.forEach((s, i) => { const d = dst[i]; if (s.isMesh && !s.userData.isHelper) { const om = getOrig(s); const nm = Array.isArray(om) ? om.map(x => x.clone()) : om.clone(); origMat.set(d, nm); d.material = state.mode === 'shaded' ? nm : OVR[state.mode]; } });
+  const junk = []; c.traverse(x => { if (x.userData.isHelper) junk.push(x); }); junk.forEach(x => x.removeFromParent());
+  const b = worldBox(o); const sz = b.getSize(new V3());
+  const pw = o.parent.localToWorld(o.position.clone()); pw.x += sz.x * 1.1 || 1; c.position.copy(o.parent.worldToLocal(pw));
+  c.name = nameOf(o) + ' copy';
+  o.parent.add(c);
+  applyEdges(c); applyCaps(c); applyEnvIntensity(c);
+  pushUndo(() => { c.removeFromParent(); if (selected === c) select(null); });
+  sceneChanged(); select(c);
+}
+function deleteObj(o) {
+  const parent = o.parent; if (!parent) return;
+  const idx = parent.children.indexOf(o);
+  o.removeFromParent();
+  const mi = models.findIndex(m => m.root === o); let entry = null;
+  if (mi >= 0) { entry = models.splice(mi, 1)[0]; entry.mixer?.stopAllAction(); }
+  pushUndo(() => { parent.add(o); parent.children.splice(parent.children.indexOf(o), 1); parent.children.splice(idx, 0, o); if (entry) models.push(entry); });
+  select(null); sceneChanged(); renderNotes();
+  toast(`Deleted <b>${esc(nameOf(o))}</b>. Ctrl+Z brings it back.`);
+}
+
+/* =========================================================== labels & measurements */
+const labels = []; let labelSeq = 0;
+const measures = [];
+function attached(o) { while (o) { if (o === scene) return true; o = o.parent; } return false; }
+function addLabel(point, host, text, edit = false) {
+  const n = ++labelSeq;
+  const el = document.createElement('div'); el.className = 'pin';
+  el.innerHTML = `<span class="pin-dot"></span><span class="pin-body"><b>${n}</b><span class="pin-text" spellcheck="false">${esc(text)}</span></span>`;
+  const obj = new CSS2DObject(el); obj.center.set(0, 0.5); obj.userData.isHelper = true;
+  host = host || scene; host.updateMatrixWorld(true);
+  obj.position.copy(host.worldToLocal(point.clone()));
+  host.add(obj);
+  const L = { id: n, obj, el, text: () => el.querySelector('.pin-text').textContent };
+  labels.push(L);
+  el.addEventListener('dblclick', e => { e.stopPropagation(); editLabel(L); });
+  el.addEventListener('click', e => { e.stopPropagation(); if (el.querySelector('[contenteditable="true"]')) return; flyToLabel(L); });
+  el.addEventListener('pointerdown', e => e.stopPropagation());
+  if (edit) editLabel(L);
+  renderNotes();
+  return L;
+}
+function editLabel(L) {
+  const t = L.el.querySelector('.pin-text');
+  t.contentEditable = 'true'; t.focus();
+  const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  t.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); t.blur(); } };
+  t.onblur = () => { t.contentEditable = 'false'; if (!t.textContent.trim()) t.textContent = 'Label ' + L.id; renderNotes(); };
+}
+function flyToLabel(L) {
+  const p = L.obj.getWorldPosition(new V3());
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const d = Math.min(camera.position.distanceTo(controls.target), state.radius * 1.2);
+  flyTo(p.clone().addScaledVector(dir, d), p, 0.8);
+  L.el.classList.add('flash'); setTimeout(() => L.el.classList.remove('flash'), 1200);
+}
+function removeLabel(L) { L.obj.removeFromParent(); labels.splice(labels.indexOf(L), 1); renderNotes(); }
+
+const measureMat = new THREE.LineBasicMaterial({ color: 0xd9a14e, depthTest: false, transparent: true });
+const dotMat = new THREE.MeshBasicMaterial({ color: 0xd9a14e, depthTest: false, transparent: true });
+let mA = null; let tempMeasure = null;
+function makeMeasureGroup(a, b) {
+  const g = new THREE.Group(); g.userData.isHelper = true;
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), measureMat); line.renderOrder = 999;
+  const r = state.radius / 180;
+  const d1 = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), dotMat); d1.position.copy(a); d1.renderOrder = 999;
+  const d2 = d1.clone(); d2.position.copy(b);
+  const el = document.createElement('div'); el.className = 'dim-tag';
+  const lab = new CSS2DObject(el); lab.position.copy(a).add(b).multiplyScalar(0.5);
+  g.add(line, d1, d2, lab);
+  return { g, line, d2, lab, el };
+}
+function measureText(a, b) { const f = fmtLen(a.distanceTo(b)); return `${f.metric}<small>${f.imp}</small>`; }
+function measureClick(p) {
+  if (!mA) {
+    mA = p.clone();
+    tempMeasure = makeMeasureGroup(mA, mA.clone()); measureGroup.add(tempMeasure.g);
+    tempMeasure.el.innerHTML = 'Pick the second point';
+  } else {
+    tempMeasure.g.removeFromParent(); tempMeasure = null;
+    const M = makeMeasureGroup(mA, p); M.a = mA; M.b = p.clone(); M.el.innerHTML = measureText(M.a, M.b);
+    measureGroup.add(M.g); measures.push(M); mA = null; renderNotes();
+  }
+}
+function cancelMeasure() { if (tempMeasure) tempMeasure.g.removeFromParent(); tempMeasure = null; mA = null; }
+function refreshMeasures() { for (const M of measures) M.el.innerHTML = measureText(M.a, M.b); renderNotes(); }
+function renderNotes() {
+  const live = labels.filter(L => attached(L.obj));
+  labels.forEach(L => { if (!attached(L.obj)) L.el.style.display = 'none'; });
+  $('#labelList').innerHTML = live.length ? live.map(L => `<div class="li" data-l="${L.id}"><span class="n">${L.id}</span><span class="t" title="Fly to label">${esc(L.text())}</span><button data-act="edit" aria-label="Rename">${ico('paste')}</button><button data-act="del" aria-label="Remove label">${ico('trash')}</button></div>`).join('')
+    : `<p class="note">Choose <b>Add</b>, then click a surface to pin a note to it. Double-click a pin to rename it.</p>`;
+  $('#measureList').innerHTML = measures.length ? measures.map((M, i) => { const f = fmtLen(M.a.distanceTo(M.b)); return `<div class="li" data-m="${i}"><span class="t" title="Fly to measurement">Dimension ${i + 1}</span><span class="m">${f.metric} · ${f.imp}</span><button data-act="del" aria-label="Remove measurement">${ico('trash')}</button></div>`; }).join('')
+    : `<p class="note">Choose <b>Measure</b> and click two points on the model.</p>`;
+}
+$('#labelList').addEventListener('click', e => {
+  const row = e.target.closest('[data-l]'); if (!row) return;
+  const L = labels.find(x => x.id === +row.dataset.l); if (!L) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'del') removeLabel(L); else if (act === 'edit') editLabel(L); else flyToLabel(L);
+});
+$('#measureList').addEventListener('click', e => {
+  const row = e.target.closest('[data-m]'); if (!row) return;
+  const M = measures[+row.dataset.m];
+  if (e.target.closest('[data-act="del"]')) { M.g.removeFromParent(); measures.splice(+row.dataset.m, 1); renderNotes(); return; }
+  const mid = M.a.clone().add(M.b).multiplyScalar(0.5); const dir = camera.position.clone().sub(controls.target).normalize();
+  flyTo(mid.clone().addScaledVector(dir, Math.max(M.a.distanceTo(M.b) * 1.6, state.radius * 0.4)), mid);
+});
+
+/* =========================================================== animation */
+let activeClip = null;   // { mi, ci, action }
+function renderClips() {
+  const box = $('#clipBox');
+  const opts = [];
+  models.forEach((m, mi) => m.clips.forEach((c, ci) => opts.push(`<option value="${mi}:${ci}" ${activeClip && activeClip.mi === mi && activeClip.ci === ci ? 'selected' : ''}>${esc(c.name || 'Clip ' + (ci + 1))} · ${c.duration.toFixed(1)} s</option>`)));
+  if (!opts.length) { box.innerHTML = `<p class="note">The open models have no built-in animation. glTF, FBX, Collada and MD2 files bring their clips along.</p>`; return; }
+  const playing = activeClip && !activeClip.action.paused && activeClip.action.isRunning();
+  box.innerHTML = `<div style="display:grid;gap:10px">
+    <select class="inp" id="clipSel" aria-label="Animation clip">${opts.join('')}</select>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn sm" id="clipPlay">${ico(playing ? 'pause' : 'play', 'fill')}<span>${playing ? 'Pause' : 'Play'}</span></button>
+      <input type="range" id="clipScrub" min="0" max="1" step="0.001" value="0" aria-label="Timeline">
+      <span class="val muted small" id="clipTime" style="font-family:var(--font-mono);min-width:44px;text-align:right">0.0 s</span>
+    </div>
+    <div class="field"><label for="clipSpeed">Speed</label><div class="rng"><input type="range" id="clipSpeed" min="0.1" max="3" step="0.05" value="${activeClip ? models[activeClip.mi].mixer.timeScale : 1}"><span class="val" id="clipSpeedV">${(activeClip ? models[activeClip.mi].mixer.timeScale : 1).toFixed(2)}×</span></div></div>
+    <label class="check"><input type="checkbox" id="clipLoop" ${!activeClip || activeClip.action.loop === THREE.LoopRepeat ? 'checked' : ''}> Loop</label></div>`;
+  $('#clipSel').onchange = e => { const [mi, ci] = e.target.value.split(':').map(Number); playClip(mi, ci); };
+  $('#clipPlay').onclick = () => {
+    if (!activeClip) { const [mi, ci] = $('#clipSel').value.split(':').map(Number); playClip(mi, ci); return; }
+    const a = activeClip.action;
+    if (!a.isRunning() && !a.paused) { a.reset().play(); } else a.paused = !a.paused;
+    renderClips();
+  };
+  $('#clipScrub').oninput = e => {
+    if (!activeClip) { const [mi, ci] = $('#clipSel').value.split(':').map(Number); playClip(mi, ci); }
+    const a = activeClip.action; a.paused = true; a.enabled = true; a.play();
+    a.time = +e.target.value * a.getClip().duration; models[activeClip.mi].mixer.update(0);
+    $('#clipPlay').innerHTML = `${ico('play', 'fill')}<span>Play</span>`;
+  };
+  $('#clipSpeed').oninput = e => { if (activeClip) models[activeClip.mi].mixer.timeScale = +e.target.value; $('#clipSpeedV').textContent = (+e.target.value).toFixed(2) + '×'; };
+  $('#clipLoop').onchange = e => { if (activeClip) { activeClip.action.setLoop(e.target.checked ? THREE.LoopRepeat : THREE.LoopOnce); activeClip.action.clampWhenFinished = true; } };
+}
+function playClip(mi, ci) {
+  const m = models[mi]; if (!m?.mixer) return;
+  m.mixer.stopAllAction();
+  const action = m.mixer.clipAction(m.clips[ci]);
+  action.reset(); action.setLoop(THREE.LoopRepeat); action.clampWhenFinished = true; action.play();
+  activeClip = { mi, ci, action };
+  renderClips();
+}
+
+const views = []; let tour = null;
+function renderViews() {
+  $('#viewList').innerHTML = views.length ? views.map((v, i) => `<div class="li" data-v="${i}"><span class="n">${i + 1}</span><span class="t" title="Go to view">${esc(v.name)}</span><button data-act="del" aria-label="Remove view">${ico('trash')}</button></div>`).join('') : '';
+}
+$('#viewList').addEventListener('click', e => {
+  const row = e.target.closest('[data-v]'); if (!row) return; const i = +row.dataset.v;
+  if (e.target.closest('[data-act="del"]')) { views.splice(i, 1); renderViews(); return; }
+  flyTo(views[i].pos, views[i].target, 1);
+});
+function playTour() {
+  if (views.length < 2) { toast('Save at least two views to play a tour.'); return; }
+  tour = { i: 0 };
+  const step = () => {
+    if (!tour) return;
+    const v = views[tour.i % views.length];
+    flyTo(v.pos, v.target, 2.2, () => { if (!tour) return; tour.hold = setTimeout(() => { tour && (tour.i++, step()); }, 700); });
+  };
+  step();
+  $('#tourPlay').innerHTML = `${ico('pause', 'fill')}<span>Stop tour</span>`;
+}
+function stopTour() {
+  if (!tour) return; clearTimeout(tour.hold); tour = null;
+  $('#tourPlay').innerHTML = `${ico('play', 'fill')}<span>Play tour</span>`;
+}
+
+/* =========================================================== tools & input */
+const HINTS = {
+  select: 'Click to select · drag to orbit · right-drag to pan · scroll to zoom',
+  translate: '<b>Move</b> · drag the arrows · select something first',
+  rotate: '<b>Rotate</b> · drag the rings · select something first',
+  scale: '<b>Scale</b> · drag the handles · select something first',
+  label: '<b>Label</b> · click a surface to pin a note · Esc to finish',
+  measure: '<b>Measure</b> · click two points · Esc to cancel',
+};
+function setHint() {
+  let h = HINTS[state.tool];
+  if (state.tool === 'select' && state.dim === '2d') h = 'Plan view · drag to pan · scroll to zoom · click to select';
+  $('#hint').innerHTML = h;
+}
+function setTool(t) {
+  if (state.tool === 'measure' && t !== 'measure') cancelMeasure();
+  state.tool = t;
+  $$('.vp-tools [data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  if (selected && ['translate', 'rotate', 'scale'].includes(t)) { tctrl.attach(selected); tctrl.setMode(t); } else tctrl.detach();
+  renderer.domElement.style.cursor = (t === 'label' || t === 'measure') ? 'crosshair' : '';
+  setHint();
+}
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, gizmo: tctrl.axis !== null || tctrl.dragging }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down) return;
+  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); const wasGizmo = down.gizmo; down = null;
+  if (moved > 5 || wasGizmo || e.button !== 0) return;
+  const hit = pick(e);
+  if (state.tool === 'label') { if (hit) addLabel(hit.point, hit.object, 'Label ' + (labelSeq + 1), true); return; }
+  if (state.tool === 'measure') { if (hit) measureClick(hit.point); return; }
+  if (!hit) { select(null); return; }
+  let o = hit.object;
+  if (o.parent?.userData?.ifc) o = o.parent;
+  if (e.altKey && o.parent && o.parent !== world) o = o.parent;
+  select(o);
+});
+let moveQueued = false, lastMove = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  lastMove = e;
+  if (moveQueued) return; moveQueued = true;
+  requestAnimationFrame(() => {
+    moveQueued = false;
+    if (state.tool === 'measure' && mA && tempMeasure) {
+      const h = pick(lastMove); if (!h) return;
+      tempMeasure.line.geometry.setFromPoints([mA, h.point]);
+      tempMeasure.d2.position.copy(h.point);
+      tempMeasure.lab.position.copy(mA).add(h.point).multiplyScalar(0.5);
+      tempMeasure.el.innerHTML = measureText(mA, h.point);
+    }
+  });
+});
+tctrl.addEventListener('dragging-changed', e => { controls.enabled = !e.value; });
+tctrl.addEventListener('mouseDown', () => { if (state.explode) applyExplode(0); tctrl.userData.before = snap(tctrl.object); });
+tctrl.addEventListener('mouseUp', () => { const o = tctrl.object, b = tctrl.userData.before; if (o && b) pushUndo(() => restore(o, b)); sceneChanged(); renderInspector(); });
+tctrl.addEventListener('objectChange', updateTransformInputs);
+
+window.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'd') { e.preventDefault(); if (selected) duplicate(selected); return; }
+  if (e.ctrlKey || e.metaKey) return;
+  if (k === 'escape') { if (!$('#artifactView').hidden) { $('#artifactView').hidden = true; return; } closeModals(); if (state.tool !== 'select') setTool('select'); else select(null); return; }
+  const map = { q: 'select', w: 'translate', e: 'rotate', r: 'scale', l: 'label', m: 'measure' };
+  if (map[k]) { setTool(map[k]); return; }
+  if (k === 'f') { selected ? focusObj(selected) : frameAll(); return; }
+  if (k === 'h') { if (e.altKey) action('showall'); else if (selected) action('hide'); return; }
+  if (k === 'delete' || k === 'backspace') { if (selected) deleteObj(selected); return; }
+  if (k === 'x') { toggleSection(); return; }
+  if (k === 'g') { toggleEdges(); return; }
+  if (k === 'p') { screenshot(); return; }
+  if (k === '?' ) { openModal('helpModal'); return; }
+  if (k === '1') setView('front'); else if (k === '3') setView('right'); else if (k === '7') setView('top'); else if (k === '0') setView('iso');
+  else if (k === '5') setProjection(camera === persp ? 'ortho' : 'persp');
+});
+
+/* =========================================================== export & screenshot */
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast(`Saving <b>${esc(name)}</b>. If no file appears, this preview blocks downloads; open index.html in a browser tab to save files.`);
+}
+async function withHelpersHidden(fn) {
+  const hidden = []; world.traverse(o => { if (o.userData.isHelper && o.visible) { hidden.push(o); o.visible = false; } });
+  const swapped = []; if (state.mode !== 'shaded') forEachMesh(m => { swapped.push([m, m.material]); m.material = getOrig(m); });
+  try { return await fn(); } finally { hidden.forEach(o => o.visible = true); swapped.forEach(([m, mt]) => m.material = mt); }
+}
+async function exportAs(kind) {
+  if (kind === 'png') { screenshot(); return; }
+  if (!world.children.length) { toast('Open a model first.', 'error'); return; }
+  showLoading('Exporting…');
+  try {
+    if (kind === 'glb') {
+      const { GLTFExporter } = await import(A + 'exporters/GLTFExporter.js');
+      const anims = models.flatMap(m => m.clips);
+      const buf = await withHelpersHidden(() => new GLTFExporter().parseAsync(world, { binary: true, onlyVisible: true, animations: anims }));
+      download(new Blob([buf], { type: 'model/gltf-binary' }), 'plinth-scene.glb');
+    } else if (kind === 'obj') {
+      const { OBJExporter } = await import(A + 'exporters/OBJExporter.js');
+      const txt = await withHelpersHidden(() => new OBJExporter().parse(world));
+      download(new Blob([txt], { type: 'text/plain' }), 'plinth-scene.obj');
+    } else if (kind === 'stl') {
+      const { STLExporter } = await import(A + 'exporters/STLExporter.js');
+      const data = await withHelpersHidden(() => new STLExporter().parse(world, { binary: true }));
+      download(new Blob([data], { type: 'model/stl' }), 'plinth-scene.stl');
+    }
+  } catch (e) { console.error(e); toast('Export failed: ' + esc(e.message), 'error'); }
+  finally { hideLoading(); closeModals(); }
+}
+let shotURL = '';
+function screenshot() {
+  const sel = outlinePass.selectedObjects; outlinePass.selectedObjects = [];
+  tctrl.visible = false;
+  composer.render();
+  shotURL = renderer.domElement.toDataURL('image/png');
+  outlinePass.selectedObjects = sel; tctrl.visible = true;
+  closeModals();
+  $('#shotImg').src = shotURL; openModal('shotModal');
+}
+
+/* =========================================================== modals & panels */
+function openModal(id) { closeModals(); $('#' + id).hidden = false; }
+function closeModals() { $$('.modal').forEach(m => m.hidden = true); }
+$$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.hidden = true; }));
+function switchTab(name) {
+  $$('.tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $$('.pane').forEach(p => p.classList.toggle('on', p.dataset.pane === name));
+}
+$$('.tabs [data-tab]').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+const narrow = () => matchMedia('(max-width: 900px)').matches;
+function openRightOnNarrow() { if (narrow()) { $('#panelRight').classList.add('open'); $('#panelLeft').classList.remove('open'); } }
+$('#btnLeftN').onclick = () => { $('#panelLeft').classList.toggle('open'); $('#panelRight').classList.remove('open'); };
+$('#btnRightN').onclick = () => { $('#panelRight').classList.toggle('open'); $('#panelLeft').classList.remove('open'); };
+$('#btnLeft').onclick = () => { $('#main').classList.toggle('no-left'); $('#btnLeft').classList.toggle('on', !$('#main').classList.contains('no-left')); };
+$('#btnRight').onclick = () => { $('#main').classList.toggle('no-right'); $('#btnRight').classList.toggle('on', !$('#main').classList.contains('no-right')); };
+vp.addEventListener('pointerdown', () => { if (narrow()) $$('.panel').forEach(p => p.classList.remove('open')); });
+
+/* =========================================================== UI wiring */
+$('#btnOpen').onclick = () => $('#fileInput').click();
+$('#miniDrop').onclick = () => $('#fileInput').click();
+$('#fileInput').onchange = e => { handleFiles(e.target.files); e.target.value = ''; };
+$('#btnPaste').onclick = () => { openModal('pasteModal'); setTimeout(() => $('#pasteText').focus(), 30); };
+$('#pasteGo').onclick = async () => { const t = $('#pasteText').value; closeModals(); await openPasted(t); };
+$('#pasteFromClip').onclick = async () => {
+  try { $('#pasteText').value = await navigator.clipboard.readText(); }
+  catch { toast('This browser blocked clipboard access. Click in the box and press Ctrl+V (⌘V on Mac).'); $('#pasteText').focus(); }
+};
+$('#btnSample').onclick = () => { loadSample(); };
+$('#btnClear').onclick = () => { clearAll(); toast('Cleared. Drop a file to start again.'); };
+$$('#segDim button').forEach(b => b.onclick = () => setDim(b.dataset.dim));
+$$('#segMode button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+function toggleEdges() { state.edges = !state.edges; $('#btnEdges').classList.toggle('on', state.edges); applyEdges(); }
+$('#btnEdges').onclick = toggleEdges;
+$('#btnGrid').onclick = () => { state.grid = !state.grid; $('#btnGrid').classList.toggle('on', state.grid); [gridMinor, gridMajor].forEach(g => g && (g.visible = state.grid)); };
+$('#btnShot').onclick = screenshot;
+$('#shotSave').onclick = () => {
+  const [head, b64] = shotURL.split(','); const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  download(new Blob([u8], { type: head.match(/:(.*?);/)[1] }), 'plinth-view.png');
+};
+$('#btnExport').onclick = () => openModal('exportModal');
+$$('[data-export]').forEach(b => b.onclick = () => exportAs(b.dataset.export));
+$('#btnHelp').onclick = () => openModal('helpModal');
+$$('.vp-tools [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+$('#btnSection').onclick = () => toggleSection();
+$('#btnUndo').onclick = undo;
+$$('.vp-nav [data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+$('#btnProj').onclick = () => setProjection(camera === persp ? 'ortho' : 'persp');
+$('#btnFit').onclick = () => frameAll();
+$('#artifactClose').onclick = () => { $('#artifactView').hidden = true; };
+$('#artifactReload').onclick = () => { $('#artifactFrame').srcdoc = artifactHTML + ' '; };
+$('#artifactFull').onclick = () => {
+  const el = $('#artifactView');
+  try { const p = el.requestFullscreen?.(); if (p) p.catch(() => toast('Full screen isn\'t available here.')); else toast('Full screen isn\'t available here.'); } catch { toast('Full screen isn\'t available here.'); }
+};
+
+$('#bgSel').onchange = e => { state.bg = e.target.value; applyBackground(); };
+const bindRange = (id, fmt, fn) => { const n = $('#' + id); n.oninput = () => { $('#' + id + 'V').textContent = fmt(+n.value); fn(+n.value); }; };
+bindRange('expo', v => v.toFixed(2), v => renderer.toneMappingExposure = v);
+bindRange('envI', v => v.toFixed(2), v => { state.envInt = v; hemi.intensity = 0.45 * v; applyEnvIntensity(); });
+bindRange('sunTime', () => '', v => { state.sun.time = v; updateSun(); });
+bindRange('sunNorth', v => `${v}°`, v => { state.sun.north = v; updateSun(); });
+bindRange('sunInt', v => v.toFixed(2), v => { state.sun.intensity = v; updateSun(); });
+$('#shadowChk').onchange = e => { state.shadows = e.target.checked; updateSun(); updateGround(); };
+$('#sunPlay').onclick = () => {
+  state.sun.playing = !state.sun.playing;
+  $('#sunPlay').innerHTML = state.sun.playing ? `${ico('pause', 'fill')}<span>Pause</span>` : `${ico('play', 'fill')}<span>Play day</span>`;
+};
+$('#secOn').onchange = e => toggleSection(e.target.checked);
+$$('#secAxis button').forEach(b => b.onclick = () => { state.section.axis = b.dataset.axis; $$('#secAxis button').forEach(x => x.classList.toggle('on', x === b)); $('label[for="secPos"]').textContent = b.dataset.axis === 'y' ? 'Cut height' : 'Cut position'; if (!state.section.on) toggleSection(true); else updateSection(); });
+$('#secPos').oninput = e => { state.section.t = +e.target.value; if (!state.section.on) toggleSection(true); else updateSection(); };
+$('#secFlip').onchange = e => { state.section.flip = e.target.checked; updateSection(); };
+$('#secColor').oninput = e => { state.section.color = e.target.value; capMat.color.set(e.target.value); };
+$('#explode').oninput = e => { explodeAnim = null; applyExplode(+e.target.value); };
+$('#explodePlay').onclick = () => { explodeAnim = { t: 0, from: state.explode }; };
+$('#noteAddLabel').onclick = () => { setTool('label'); if (narrow()) $('#panelRight').classList.remove('open'); };
+$('#noteMeasure').onclick = () => { setTool('measure'); if (narrow()) $('#panelRight').classList.remove('open'); };
+$('#labelsVis').onchange = e => { labelRenderer.domElement.style.display = e.target.checked ? '' : 'none'; };
+$('#notesClear').onclick = () => { [...labels].forEach(removeLabel); measures.forEach(M => M.g.removeFromParent()); measures.length = 0; renderNotes(); };
+const setUnits = v => { state.units = v; $('#unitSel').value = v; $('#unitSel2').value = v; resolveUnits(); updateStatus(); refreshMeasures(); renderInspector(); };
+$('#unitSel').onchange = e => setUnits(e.target.value);
+$('#unitSel2').onchange = e => setUnits(e.target.value);
+$('#ttOn').onchange = e => { controls.autoRotate = e.target.checked; };
+bindRange('ttSpeed', v => v.toFixed(1), v => controls.autoRotateSpeed = v);
+controls.autoRotateSpeed = 1.5;
+$('#viewSave').onclick = () => { views.push({ name: `View ${views.length + 1}`, pos: camera.position.clone(), target: controls.target.clone() }); renderViews(); toast(`Saved view ${views.length}.`); };
+$('#tourPlay').onclick = () => tour ? stopTour() : playTour();
+
+/* drag & drop + paste anywhere */
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); dragDepth++; $('#drop').hidden = false; } });
+window.addEventListener('dragover', e => { e.preventDefault(); });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('#drop').hidden = true; });
+window.addEventListener('drop', async e => {
+  e.preventDefault(); dragDepth = 0; $('#drop').hidden = true;
+  const files = await collectDropped(e.dataTransfer);
+  if (files.length) handleFiles(files);
+  else { const t = e.dataTransfer.getData('text'); if (t) openPasted(t); }
+});
+window.addEventListener('paste', e => {
+  if (e.target.closest?.('input, textarea, [contenteditable="true"]')) return;
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); handleFiles(files); return; }
+  const t = e.clipboardData?.getData('text'); if (t && t.trim().length > 20) { e.preventDefault(); openPasted(t); }
+});
+const themeChanged = () => { applyBackground(); outlinePass.visibleEdgeColor.set(cssVar('--accent') || '#d9a14e'); outlinePass.hiddenEdgeColor.set(cssVar('--accent') || '#d9a14e').multiplyScalar(0.35); };
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', themeChanged);
+new MutationObserver(themeChanged).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* =========================================================== sample: brass pavilion */
+function buildSample() {
+  const root = new THREE.Group(); root.name = 'Pavilion';
+  const M = {
+    plinth: new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 0.95, name: 'Limestone plinth' }),
+    concrete: new THREE.MeshStandardMaterial({ color: 0xcdc8bf, roughness: 0.9, name: 'Board-formed concrete' }),
+    deck: new THREE.MeshStandardMaterial({ color: 0xb4875a, roughness: 0.75, name: 'Oak deck' }),
+    timber: new THREE.MeshStandardMaterial({ color: 0x9a6a3c, roughness: 0.7, name: 'Larch slats' }),
+    steel: new THREE.MeshStandardMaterial({ color: 0x2b2e32, roughness: 0.42, metalness: 0.75, name: 'Blackened steel' }),
+    brass: new THREE.MeshStandardMaterial({ color: 0xc99a4a, roughness: 0.28, metalness: 1, name: 'Brass fascia' }),
+    glass: new THREE.MeshPhysicalMaterial({ color: 0xbfdcea, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.26, depthWrite: false, side: THREE.DoubleSide, name: 'Low-iron glass' }),
+    roof: new THREE.MeshStandardMaterial({ color: 0xebe7e0, roughness: 0.82, name: 'Lime-washed soffit' }),
+    water: new THREE.MeshPhysicalMaterial({ color: 0x3f6f86, roughness: 0.04, metalness: 0.15, clearcoat: 1, name: 'Still water' }),
+    leaf: new THREE.MeshStandardMaterial({ color: 0x6d8a52, roughness: 0.9, flatShading: true, name: 'Foliage' }),
+    bark: new THREE.MeshStandardMaterial({ color: 0x5b4632, roughness: 0.95, name: 'Bark' }),
+    fabric: new THREE.MeshStandardMaterial({ color: 0x8c5a43, roughness: 1, name: 'Wool upholstery' }),
+  };
+  const grp = (name, parent = root) => { const g = new THREE.Group(); g.name = name; parent.add(g); return g; };
+  const box = (name, w, h, d, x, y, z, mat, parent) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.name = name; m.position.set(x, y, z); parent.add(m); return m; };
+  const plinth = grp('Plinth');
+  box('Plinth block', 16, 0.6, 11, 0, 0.3, 0, M.plinth, plinth);
+  const pool = box('Reflecting pool', 5, 0.03, 1.5, -4.6, 0.6, 4.55, M.water, plinth);
+  const steps = grp('Entrance steps');
+  box('Step 1', 4, 0.4, 0.35, 2, 0.2, 5.675, M.plinth, steps);
+  box('Step 2', 4, 0.2, 0.35, 2, 0.1, 6.025, M.plinth, steps);
+  const floor = grp('Floor');
+  box('Oak deck', 12, 0.05, 8, 0, 0.625, 0, M.deck, floor);
+  const cols = grp('Columns');
+  let ci = 1;
+  for (const x of [-5.8, 0, 5.8]) for (const z of [-3.8, 3.8]) box(`Column C${ci++}`, 0.15, 3.2, 0.15, x, 2.25, z, M.steel, cols);
+  const roofA = grp('RoofAssembly');
+  const roofSlab = box('Roof slab', 14.6, 0.35, 10.6, 0, 4.025, 0, M.roof, roofA);
+  box('Fascia south', 14.68, 0.4, 0.04, 0, 4.025, 5.32, M.brass, roofA);
+  box('Fascia north', 14.68, 0.4, 0.04, 0, 4.025, -5.32, M.brass, roofA);
+  box('Fascia east', 0.04, 0.4, 10.6, 7.32, 4.025, 0, M.brass, roofA);
+  box('Fascia west', 0.04, 0.4, 10.6, -7.32, 4.025, 0, M.brass, roofA);
+  const walls = grp('Walls');
+  box('Back wall', 12, 3.2, 0.3, 0, 2.25, -3.95, M.concrete, walls);
+  const screen = grp('Timber screen');
+  for (let i = 0; i < 25; i++) box(`Slat ${i + 1}`, 0.05, 3.2, 0.12, -5.9, 2.25, -3.6 + i * 0.3, M.timber, screen);
+  const glazing = grp('Glazing');
+  box('Glass south-west', 7, 3.2, 0.02, -2.3, 2.25, 3.8, M.glass, glazing);
+  box('Glass south-east', 3, 3.2, 0.02, 4.3, 2.25, 3.8, M.glass, glazing);
+  box('Glass east', 0.02, 3.2, 7.6, 5.8, 2.25, 0, M.glass, glazing);
+  box('Transom', 1.6, 0.2, 0.06, 2, 3.75, 3.8, M.steel, glazing);
+  const pivot = new THREE.Group(); pivot.name = 'DoorPivot'; pivot.position.set(1.2, 0.65, 3.8); root.add(pivot);
+  const door = box('Pivot door', 1.6, 3.0, 0.06, 0.8, 1.5, 0, M.timber, pivot);
+  box('Brass pull', 0.04, 1.2, 0.08, 1.45, 1.5, 0.07, M.brass, pivot);
+  const furn = grp('Furniture');
+  box('Table top', 2.6, 0.05, 0.95, -1, 1.39, -0.6, M.deck, furn);
+  for (const [x, z] of [[-2.15, -0.98], [0.15, -0.98], [-2.15, -0.22], [0.15, -0.22]]) box('Table leg', 0.05, 0.72, 0.05, x, 1.01, z, M.steel, furn);
+  box('Bench', 3.4, 0.42, 0.55, -1.4, 0.86, -3.4, M.fabric, furn);
+  box('Lounge chair', 0.8, 0.4, 0.8, 3.6, 0.85, 1.4, M.fabric, furn);
+  box('Lounge back', 0.8, 0.5, 0.12, 3.6, 1.25, 1.06, M.fabric, furn);
+  const land = grp('Landscape');
+  const tree = (name, x, z, s) => {
+    const t = grp(name, land);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * s, 0.16 * s, 2.4 * s, 8), M.bark); trunk.position.set(x, 1.2 * s, z); trunk.name = 'Trunk';
+    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 * s, 1), M.leaf); crown.position.set(x, 3.2 * s, z); crown.name = 'Crown'; crown.scale.y = 1.15;
+    t.add(trunk, crown);
+  };
+  tree('Tree — birch', -9.5, 6.5, 1); tree('Tree — maple', 9.5, -6.8, 1.25); tree('Tree — birch 2', -9.8, -5.5, 0.85);
+  const door0 = new THREE.Quaternion(), door1 = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), THREE.MathUtils.degToRad(82));
+  const qv = q => [q.x, q.y, q.z, q.w];
+  const doorClip = new THREE.AnimationClip('Door · open and close', 5, [
+    new THREE.QuaternionKeyframeTrack('DoorPivot.quaternion', [0, 1.4, 3.4, 5], [...qv(door0), ...qv(door1), ...qv(door1), ...qv(door0)])]);
+  const roofClip = new THREE.AnimationClip('Roof · lift to reveal', 4.5, [
+    new THREE.VectorKeyframeTrack('RoofAssembly.position', [0, 1.6, 2.9, 4.5], [0, 0, 0, 0, 2.6, 0, 0, 2.6, 0, 0, 0, 0])]);
+  return { object: root, animations: [doorClip, roofClip], refs: { door, roofSlab, pool } };
+}
+function loadSample() {
+  const s = buildSample();
+  const entry = addModel(s, 'Sample — Brass Pavilion');
+  const { door, roofSlab, pool } = s.refs;
+  root_update(entry.root);
+  addLabel(door.localToWorld(new V3(0, 0.2, 0.04)), door, 'Pivot door · oak, 1.6 m');
+  addLabel(roofSlab.localToWorld(new V3(7.3, 0, 5.3)), roofSlab, 'Cantilever 1.5 m');
+  addLabel(pool.localToWorld(new V3(-1.6, 0.02, 0)), pool, 'Reflecting pool');
+  const a = roofSlab.localToWorld(new V3(7.3, -0.175, -5.3)), b = roofSlab.localToWorld(new V3(7.3, -0.175, 5.3));
+  const Mm = makeMeasureGroup(a, b); Mm.a = a; Mm.b = b; Mm.el.innerHTML = measureText(a, b); measureGroup.add(Mm.g); measures.push(Mm);
+  if (!views.length) {
+    views.push({ name: 'Approach', pos: new V3(9, 3.2, 17), target: new V3(1, 2, 2) });
+    views.push({ name: 'Under the cantilever', pos: new V3(9.5, 1.9, 5.5), target: new V3(0, 2.2, -1) });
+    views.push({ name: 'Bird\'s-eye', pos: new V3(-14, 16, 14), target: new V3(0, 1.5, 0) });
+    renderViews();
+  }
+  renderNotes();
+  if (state.dim === '2d') setDim('3d'); else setView('iso');
+}
+function root_update(r) { r.updateMatrixWorld(true); }
+
+/* =========================================================== loop */
+const clock = new THREE.Clock();
+let fpsT = 0, fpsN = 0;
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (fly) {
+    fly.t += dt / fly.dur; const k = ease(Math.min(1, fly.t));
+    camera.position.lerpVectors(fly.p0, fly.p1, k); controls.target.lerpVectors(fly.t0, fly.t1, k);
+    if (fly.t >= 1) { const cb = fly.onDone; fly = null; cb?.(); }
+  }
+  if (state.sun.playing) {
+    state.sun.time += dt * 1.2; if (state.sun.time > 19) state.sun.time = 5;
+    $('#sunTime').value = state.sun.time; updateSun();
+  }
+  if (explodeAnim) {
+    explodeAnim.t += dt / 3.2; const t = Math.min(1, explodeAnim.t);
+    applyExplode(Math.sin(Math.PI * t) * 0.9);
+    if (t >= 1) { explodeAnim = null; applyExplode(0); }
+  }
+  for (const m of models) m.mixer?.update(dt);
+  if (activeClip && $('#clipScrub') && !activeClip.action.paused) {
+    const a = activeClip.action, d = a.getClip().duration || 1;
+    $('#clipScrub').value = (a.time % d) / d; $('#clipTime').textContent = a.time.toFixed(1) + ' s';
+  }
+  controls.update(dt);
+  setNearFar();
+  composer.render();
+  labelRenderer.render(scene, camera);
+  fpsN++; fpsT += dt;
+  if (fpsT > 0.5) { $('#stFps').textContent = `${Math.round(fpsN / fpsT)} fps`; fpsN = 0; fpsT = 0; }
+}
+
+/* =========================================================== boot */
+resize();
+themeChanged();
+updateSun();
+renderNotes(); renderViews(); renderInspector();
+$('#btnLeft').classList.add('on'); $('#btnRight').classList.add('on');
+setHint();
+loadSample();
+hideLoading();
+loop();
+window.plinth = { THREE, scene, world, models, handleFiles, openPasted, state, select, setDim, setMode, toggleSection, applyExplode };
+</script>
