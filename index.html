@@ -2150,11 +2150,24 @@ window.addEventListener('keydown', e => {
 });
 
 /* =========================================================== export & screenshot */
-function download(blob, name) {
+const downloadsReady = (async () => { try { return window.claude?.use ? await window.claude.use('downloads') : null; } catch { return null; } })();
+const SAVE_OK = ['png', 'jpg', 'json', 'txt', 'svg', 'pdf', 'zip', 'html', 'csv'];
+async function download(blob, name) {
+  const ns = await downloadsReady;
+  if (ns) {
+    let data = blob, fname = name;
+    if (!SAVE_OK.includes(extOf(name))) {
+      const { zipSync } = await import(A + 'libs/fflate.module.js');
+      data = new Blob([zipSync({ [name]: new Uint8Array(await blob.arrayBuffer()) })]); fname = name + '.zip';
+    }
+    try { await ns.save({ filename: fname, data }); toast(`Saved <b>${esc(fname)}</b>.`, 'ok'); }
+    catch (e) { if (e?.code !== 'declined') toast(`Couldn't save the file here (${esc(e?.code || 'unavailable')}). Open index.html in a browser tab to export.`, 'error'); }
+    return;
+  }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast(`Saving <b>${esc(name)}</b>. If no file appears, this preview blocks downloads; open index.html in a browser tab to save files.`);
+  toast(`Saving <b>${esc(name)}</b>.`, 'ok');
 }
 async function withHelpersHidden(fn) {
   const hidden = []; world.traverse(o => { if (o.userData.isHelper && o.visible) { hidden.push(o); o.visible = false; } });
